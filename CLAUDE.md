@@ -36,7 +36,14 @@ Run ruff, mypy and fast pytest before every commit. CI runs Python 3.11 and 3.12
 6. mypy strict on core/methods/decision; ruff line length 100.
 
 ## Workflow
-- Small changes: one estimator + oracle test + docstring.
+- Keep PRs small: one estimator + its oracle test + its docstring, or one ticket step.
+  Small diffs are easier to verify against the blueprint and a reference implementation,
+  which is how wrong formulas and invented APIs get caught. If a task spans several
+  tickets or touches several methods, split it into separate PRs and don't bundle them.
+- PR titles are a plain-English summary of the change, in the style of the commit log
+  (e.g. "Add Diebold-Mariano test with HLN correction and oracle tests"). Never use the
+  branch name, a session ID or a generic title like "Update files". The description
+  says what changed, why, and how it was verified (which tests were run).
 - A statistics change is not done until its oracle test passes. If it affects Type I
   error or coverage, run `-m slow` too.
 - Don't weaken a test tolerance to make it pass; find the cause.

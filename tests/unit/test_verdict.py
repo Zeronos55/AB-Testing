@@ -1,6 +1,7 @@
 import pytest
 
-from isbetter.decision.verdict import decide, mirror_label, n_needed
+from isbetter.decision.verdict import decide, mirror_label
+from isbetter.methods.power import n_needed
 
 CASES = [
     # (L, U, margin, label)

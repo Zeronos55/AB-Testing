@@ -1,7 +1,7 @@
 # Blueprint: `isbetter`, a dependence-aware "Is A really better than B?" toolkit
 
 > Audience: junior engineers and interns joining the build. Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
-> Status: **blueprint only.** No code is built until the lead gives the command; Phase 0 starts first (see section 12).
+> Status: **Phases 0–1 built** (see README for current commands). Later phases are still planned; build them in the order given in section 12.
 
 ---
 

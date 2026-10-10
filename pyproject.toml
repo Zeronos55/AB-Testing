@@ -56,3 +56,6 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 markers = ["slow: slow calibration tests (deselect with -m 'not slow')"]
 addopts = "-m 'not slow'"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]

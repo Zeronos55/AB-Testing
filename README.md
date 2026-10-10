@@ -6,7 +6,16 @@
 
 ## Status
 
-**Blueprint stage.** No code yet. Read the build plan first:
+**Phase 0 built** (paired/iid comparison, verdict, report, calibration harness). Try it:
+
+```bash
+uv sync
+uv run isbetter run examples/toy_paired.yaml
+uv run pytest            # fast tests
+uv run pytest -m slow    # A/A calibration (10,000 replications)
+```
+
+Build plan:
 
 ➡️ **[docs/BLUEPRINT.md](docs/BLUEPRINT.md)**: architecture, data contract, method routing table, formulas, phased tickets with Definitions of Done, testing strategy and the 8 GB RAM rules.
 

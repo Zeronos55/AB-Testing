@@ -33,6 +33,4 @@ def render_markdown(result: Result) -> str:
         autoescape=False,
     )
     tpl = env.get_template("report.md.j2")
-    return tpl.render(
-        r=result, plan_text=result.plan.pretty(), label_text=LABEL_TEXT, row=_row
-    )
+    return tpl.render(r=result, plan_text=result.plan.pretty(), label_text=LABEL_TEXT, row=_row)

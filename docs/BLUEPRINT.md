@@ -393,7 +393,7 @@ adapter: sklearn_cv            # sklearn_cv | ab_table | forecast_backtest | str
 data: results/fraud_cv_scores.parquet
 variants: {baseline: logreg, candidates: [lightgbm, rf]}
 metric: {name: pr_auc, higher_is_better: true}
-dependence: {type: cv_overlap, repeats: 10, folds: 10}
+dependence: {type: cv_overlap, n_train: 255000, n_test: 28000, repeats: 10, folds: 10}
 decision: {min_effect: 0.01, alpha: 0.05, correction: holm}
 seed: 20261010
 report: {format: [markdown, html], include_simulation_check: true}

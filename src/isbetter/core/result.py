@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from typing import Any
+
+from isbetter import __version__
+from isbetter.core.plan import AnalysisPlan
 
 
 @dataclass
@@ -21,3 +26,84 @@ class MethodResult:
     n_effective: float
     rationale: str
     diagnostics: dict[str, Any] = field(default_factory=dict)
+
+
+VERDICT_LABELS = (
+    "A_better_practical",
+    "A_better_maybe_trivial",
+    "equivalent",
+    "inconclusive",
+    "B_better_maybe_trivial",
+    "B_better_practical",
+)
+
+
+@dataclass
+class Verdict:
+    label: str
+    explanation: str
+    n_needed: float | None = None
+    n_needed_note: str | None = None
+
+
+@dataclass
+class ComparisonResult:
+    """One (baseline, candidate, metric) comparison.
+
+    ``primary.estimate`` is candidate - baseline in the metric's raw units; ``oriented_*``
+    flip sign for lower-is-better metrics so positive always means the candidate wins.
+    """
+
+    baseline: str
+    candidate: str
+    metric: str
+    primary: MethodResult
+    cross_checks: list[MethodResult]
+    verdict: Verdict
+    oriented_estimate: float
+    oriented_ci_low: float
+    oriented_ci_high: float
+    n_pairs: int
+    adjusted_p: float | None = None
+
+
+@dataclass
+class Result:
+    experiment: str
+    plan: AnalysisPlan
+    comparisons: list[ComparisonResult]
+    seed: int
+    package_version: str = __version__
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
+
+    def to_dict(self) -> dict[str, Any]:
+        d = asdict(self)
+        d["plan"] = self.plan.to_dict()
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, allow_nan=True)
+
+    @classmethod
+    def from_json(cls, text: str) -> Result:
+        d = json.loads(text)
+        comps = []
+        for c in d["comparisons"]:
+            comps.append(
+                ComparisonResult(
+                    **{
+                        **c,
+                        "primary": MethodResult(**c["primary"]),
+                        "cross_checks": [MethodResult(**m) for m in c["cross_checks"]],
+                        "verdict": Verdict(**c["verdict"]),
+                    }
+                )
+            )
+        return cls(
+            experiment=d["experiment"],
+            plan=AnalysisPlan.from_dict(d["plan"]),
+            comparisons=comps,
+            seed=d["seed"],
+            package_version=d["package_version"],
+            created_at=d["created_at"],
+        )

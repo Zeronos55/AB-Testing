@@ -65,3 +65,46 @@ def type1_rate(
         rejections += int((pvalues(a, b) < alpha).sum())
         done += m
     return CalibrationResult(rejections / reps, reps, alpha, mc_band(alpha, reps))
+
+
+def naive_cv_pvalues(diffs: np.ndarray) -> np.ndarray:
+    """Row-wise p-values of the NAIVE paired t-test on (reps, J) fold differences."""
+    J = diffs.shape[1]
+    t = diffs.mean(1) / (diffs.std(1, ddof=1) / np.sqrt(J))
+    return np.asarray(2 * stats.t.sf(np.abs(t), J - 1))
+
+
+def nadeau_bengio_pvalues(diffs: np.ndarray, n_train: int, n_test: int) -> np.ndarray:
+    """Row-wise p-values of the Nadeau-Bengio corrected t-test on (reps, J) differences."""
+    J = diffs.shape[1]
+    se = np.sqrt((1.0 / J + n_test / n_train) * diffs.var(1, ddof=1))
+    return np.asarray(2 * stats.t.sf(np.abs(diffs.mean(1) / se), J - 1))
+
+
+def cv_type1(
+    rng: np.random.Generator,
+    reps: int,
+    n: int = 100,
+    k: int = 10,
+    r: int = 1,
+    alpha: float = 0.05,
+    chunk: int = 500,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Type I error of (naive, Nadeau-Bengio) on the symmetric-learners CV null."""
+    from isbetter.simulate.dgp import cv_null_diffs
+
+    n_test = n // k
+    n_train = n - n_test
+    rej = [0, 0]
+    done = 0
+    while done < reps:
+        m = min(chunk, reps - done)
+        d = cv_null_diffs(rng, m, n, k, r)
+        rej[0] += int((naive_cv_pvalues(d) < alpha).sum())
+        rej[1] += int((nadeau_bengio_pvalues(d, n_train, n_test) < alpha).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    return (
+        CalibrationResult(rej[0] / reps, reps, alpha, band),
+        CalibrationResult(rej[1] / reps, reps, alpha, band),
+    )

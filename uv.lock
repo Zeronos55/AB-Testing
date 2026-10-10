@@ -1042,12 +1042,14 @@ ml = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "duckdb" },
     { name = "hypothesis" },
     { name = "lightgbm" },
     { name = "matplotlib" },
     { name = "mlxtend" },
     { name = "mypy" },
     { name = "pandas" },
+    { name = "polars" },
     { name = "pytest" },
     { name = "pytest-xdist" },
     { name = "ruff" },
@@ -1080,12 +1082,14 @@ provides-extras = ["ab", "ml", "forecast", "finance", "bayes", "app", "docs"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "duckdb" },
     { name = "hypothesis", specifier = ">=6" },
     { name = "lightgbm" },
     { name = "matplotlib" },
     { name = "mlxtend" },
     { name = "mypy" },
     { name = "pandas" },
+    { name = "polars" },
     { name = "pytest", specifier = ">=8" },
     { name = "pytest-xdist" },
     { name = "ruff" },

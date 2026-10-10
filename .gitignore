@@ -8,4 +8,5 @@ __pycache__/
 dist/
 *.egg-info/
 data/
-REPORT.md
+/REPORT.md
+case_studies/*/out/

@@ -1,0 +1,11 @@
+# Compare random forest and LightGBM against a logistic-regression baseline on PR-AUC.
+# Scores come from repeated stratified 5-fold CV (6 repeats = 30 paired fold scores).
+experiment: fraud_classifiers
+adapter: csv_long
+data: out/cv_scores.csv
+variants: {baseline: logreg, candidates: [random_forest, lightgbm]}
+metric: {name: pr_auc, higher_is_better: true}
+dependence: {type: cv_overlap, n_train: 24000, n_test: 6000, repeats: 6, folds: 5}
+decision: {min_effect: 0.01, alpha: 0.05, correction: holm}
+seed: 20261010
+report: {format: [markdown]}

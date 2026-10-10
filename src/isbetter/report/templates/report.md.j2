@@ -18,8 +18,8 @@ for lower-is-better metrics so that positive always means the candidate wins.
 **Verdict: {{ label_text[c.verdict.label] }}** (`{{ c.verdict.label }}`)
 
 {{ c.verdict.explanation }}
-{% if c.verdict.n_needed %}
-Needed sample size (total n): about {{ "%.0f"|format(c.verdict.n_needed) }} (currently {{ c.n_pairs }}). {{ c.verdict.n_needed_note }}.
+{% if c.verdict.n_needed or c.verdict.n_needed_note %}
+**How much more data?** {% if c.verdict.n_needed %}About {{ "%.0f"|format(c.verdict.n_needed) }} observations in total (currently {{ c.n_pairs }}). {% endif %}{% if c.verdict.n_needed_note %}{{ c.verdict.n_needed_note }}.{% endif %}
 {% endif %}
 
 | Method | Estimate | {{ "%.1f"|format(c.primary.ci_level * 100) }}% CI | p-value |

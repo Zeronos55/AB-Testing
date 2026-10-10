@@ -13,7 +13,7 @@ def test_cli_end_to_end(tmp_path):
     assert res.exit_code == 0, res.output
     assert "Analysis plan" in res.output  # plan printed before results
     text = out.read_text()
-    for needle in ("Verdict", "paired_t", "95% CI", "Why this method", "p-value"):
+    for needle in ("Verdict", "paired_t", "95.0% CI", "Why this method", "p-value"):
         assert needle in text
 
 

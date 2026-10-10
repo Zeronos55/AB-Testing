@@ -12,7 +12,7 @@ from typing import Any
 
 import numpy as np
 
-from isbetter.core.dependence import Clustered, Dependence, Paired, TimeSeries
+from isbetter.core.dependence import Clustered, CVOverlap, Dependence, Paired, TimeSeries
 
 REQUIRED = ("unit_id", "variant", "metric", "value")
 
@@ -84,7 +84,7 @@ def validate(table: CanonicalTable, dependence: Dependence | None = None) -> Non
         if len(set(keys)) != len(keys):
             raise SchemaError("duplicate (variant, metric, pair_id) rows")
 
-    if isinstance(dependence, Paired):
+    if isinstance(dependence, Paired | CVOverlap):
         _check_pairing(cols, variant, metric)
     elif isinstance(dependence, Clustered):
         _check_clusters(cols, dependence, variant, metric)

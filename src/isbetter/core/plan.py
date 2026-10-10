@@ -13,8 +13,6 @@ from typing import Any
 from isbetter.core.config import Config
 from isbetter.core.dependence import (
     Dependence,
-    Iid,
-    Paired,
     dependence_from_dict,
     dependence_to_dict,
 )
@@ -28,9 +26,11 @@ class UnsupportedPlan(ValueError):
 ROUTES: dict[str, tuple[str, tuple[str, ...]]] = {
     "iid": ("welch_t", ()),
     "paired": ("paired_t", ("paired_bootstrap", "sign_flip_permutation")),
+    "clustered": ("cluster_robust_diff", ("cluster_bootstrap",)),
+    "cv_overlap": ("nadeau_bengio", ()),
 }
 
-_PHASE = {"clustered": 1, "cv_overlap": 1, "timeseries": 3}
+_PHASE = {"timeseries": 3}
 
 
 @dataclass
@@ -76,7 +76,7 @@ class AnalysisPlan:
 
 
 def route(dep: Dependence) -> tuple[str, tuple[str, ...]]:
-    if isinstance(dep, Iid | Paired):
+    if dep.kind in ROUTES:
         return ROUTES[dep.kind]
     phase = _PHASE.get(dep.kind, "later")
     raise UnsupportedPlan(

@@ -65,6 +65,7 @@ class ComparisonResult:
     oriented_ci_high: float
     n_pairs: int
     adjusted_p: float | None = None
+    alpha_used: float = 0.05
 
 
 @dataclass

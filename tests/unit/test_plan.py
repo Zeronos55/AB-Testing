@@ -29,11 +29,7 @@ def test_iid_routes_to_welch():
 
 @pytest.mark.parametrize(
     "dep",
-    [
-        {"type": "clustered"},
-        {"type": "cv_overlap", "n_train": 9, "n_test": 1, "repeats": 1, "folds": 5},
-        {"type": "timeseries"},
-    ],
+    [{"type": "timeseries"}],
 )
 def test_unsupported_never_falls_back(dep):
     with pytest.raises(UnsupportedPlan, match="not implemented"):
@@ -43,3 +39,11 @@ def test_unsupported_never_falls_back(dep):
 def test_plan_dict_roundtrip():
     plan = build_plan(cfg({"type": "paired"}))
     assert AnalysisPlan.from_dict(plan.to_dict()) == plan
+
+
+def test_cv_and_cluster_routes():
+    cv = build_plan(
+        cfg({"type": "cv_overlap", "n_train": 9, "n_test": 1, "repeats": 1, "folds": 5})
+    )
+    assert cv.primary == "nadeau_bengio"
+    assert build_plan(cfg({"type": "clustered"})).primary == "cluster_robust_diff"

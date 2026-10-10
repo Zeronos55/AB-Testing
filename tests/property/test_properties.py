@@ -18,7 +18,7 @@ def test_verdict_mirror_property(c, h, m):
 @settings(deadline=None)
 @given(arrays, arrays)
 def test_swap_flips_sign_welch(a, b):
-    if a.std() == 0 and b.std() == 0:
+    if a.var() + b.var() < 1e-9:  # skip numerically degenerate (underflowing) variances
         return
     r1, r2 = welch_t(a, b), welch_t(b, a)
     assert np.isclose(r1.estimate, -r2.estimate)

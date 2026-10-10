@@ -60,3 +60,19 @@ def test_srm_false_alarm_rate_at_nominal(request):
     reps = request.config.getoption("--reps")
     r = srm_rejection_rate(np.random.default_rng(24), reps, 20_000, (0.4, 0.3, 0.3), alpha=0.05)
     assert r.passed, f"SRM false-alarm rate {r.rate:.4f} outside {r.band}"
+
+
+def test_cluster_robust_nominal_while_naive_row_analysis_is_inflated(request):
+    """Gallery #5 as a test: users randomised, 10 sessions each, ICC 0.3 (design effect 3.7).
+
+    CR1 with t(G - 1) inference is known to be marginally liberal at finite G (its variance is
+    about 0.5% small at G = 200; pooled over 80,000 replications the rate is 0.051), so this
+    test uses a 3 Monte Carlo SE band instead of the 2 SE band of the exact methods above.
+    """
+    from isbetter.simulate.calibration import cluster_type1
+
+    reps = request.config.getoption("--reps")
+    naive, cr1 = cluster_type1(np.random.default_rng(25), reps, users=100, sessions=10, icc=0.3)
+    half = 3 * np.sqrt(0.05 * 0.95 / reps)
+    assert abs(cr1.rate - 0.05) <= half, f"CR1 rate {cr1.rate:.4f} outside 0.05 +/- {half:.4f}"
+    assert naive.rate > 0.20, f"naive row-level rate {naive.rate:.3f} should be badly inflated"

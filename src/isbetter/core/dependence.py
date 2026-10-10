@@ -61,3 +61,24 @@ class TimeSeries:
 
 
 Dependence = Iid | Paired | Clustered | CVOverlap | TimeSeries
+
+
+def dependence_to_dict(dep: Dependence) -> dict[str, object]:
+    out: dict[str, object] = {"type": dep.kind}
+    out.update(dep.__dict__)
+    return out
+
+
+def dependence_from_dict(d: dict[str, object]) -> Dependence:
+    kw = {k: v for k, v in d.items() if k != "type"}
+    kinds: dict[str, type] = {
+        "iid": Iid,
+        "paired": Paired,
+        "clustered": Clustered,
+        "cv_overlap": CVOverlap,
+        "timeseries": TimeSeries,
+    }
+    try:
+        return kinds[str(d["type"])](**kw)  # type: ignore[no-any-return]
+    except KeyError as exc:
+        raise ValueError(f"unknown dependence type: {d.get('type')!r}") from exc

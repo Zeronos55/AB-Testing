@@ -1,0 +1,37 @@
+# {{ r.experiment }}
+
+*isbetter {{ r.package_version }} · seed {{ r.seed }} · {{ r.created_at }}*
+
+## Plan
+
+```
+{{ plan_text }}
+```
+
+## Results
+
+Estimates are **candidate − baseline** in the metric's own units. "Oriented" values flip the sign
+for lower-is-better metrics so that positive always means the candidate wins.
+{% for c in r.comparisons %}
+### {{ c.candidate }} vs {{ c.baseline }} — {{ c.metric }}
+
+**Verdict: {{ label_text[c.verdict.label] }}** (`{{ c.verdict.label }}`)
+
+{{ c.verdict.explanation }}
+{% if c.verdict.n_needed or c.verdict.n_needed_note %}
+**How much more data?** {% if c.verdict.n_needed %}About {{ "%.0f"|format(c.verdict.n_needed) }} observations in total (currently {{ c.n_pairs }}). {% endif %}{% if c.verdict.n_needed_note %}{{ c.verdict.n_needed_note }}.{% endif %}
+{% endif %}
+
+| Method | Estimate | {{ "%.1f"|format(c.primary.ci_level * 100) }}% CI | p-value |
+|---|---:|---|---:|
+{{ row(c.primary) }}
+{% for m in c.cross_checks %}{{ row(m) }}
+{% endfor %}
+{% if c.adjusted_p is not none %}Multiplicity ({{ r.plan.correction }} across {{ r.comparisons|length }} candidates): adjusted p = {{ "%.4g"|format(c.adjusted_p) }}; CIs use per-comparison alpha = {{ "%.4g"|format(c.alpha_used) }}.
+
+{% endif %}Oriented effect: {{ "%.4g"|format(c.oriented_estimate) }} (CI {{ "%.4g"|format(c.oriented_ci_low) }} to {{ "%.4g"|format(c.oriented_ci_high) }}), minimum effect of interest δ = {{ r.plan.min_effect }}.
+
+**Why this method:** {{ c.primary.rationale }}
+{% for m in c.cross_checks %}
+- *{{ m.method }}:* {{ m.rationale }}{% endfor %}
+{% endfor %}

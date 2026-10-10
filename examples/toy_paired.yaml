@@ -1,0 +1,8 @@
+experiment: toy_paired
+adapter: csv_long
+data: toy_paired.csv
+variants: {baseline: baseline, candidates: [candidate]}
+metric: {name: score, higher_is_better: true}
+dependence: {type: paired}
+decision: {min_effect: 0.1, alpha: 0.05}
+seed: 20261010

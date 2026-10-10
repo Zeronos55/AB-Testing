@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "isbetter"
+version = "0.0.1"
+description = "Dependence-aware A vs B comparison toolkit: valid test, three-way verdict, and calibration proof."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "pydantic>=2.5",
+  "pyyaml>=6.0",
+  "typer>=0.12",
+  "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+ab = ["duckdb", "polars"]
+ml = ["scikit-learn", "lightgbm"]
+forecast = ["statsmodels", "statsforecast", "arch"]
+finance = ["arch"]
+bayes = ["baycomp"]
+app = ["streamlit"]
+docs = ["mkdocs-material"]
+
+[dependency-groups]
+dev = ["pytest>=8", "hypothesis>=6", "pytest-xdist", "ruff", "mypy", "types-PyYAML", "statsmodels", "scikit-learn", "lightgbm", "mlxtend", "matplotlib", "pandas"]
+
+[project.scripts]
+isbetter = "isbetter.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/isbetter"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["scipy.*", "yaml.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: slow calibration tests (deselect with -m 'not slow')"]
+addopts = "-m 'not slow'"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]

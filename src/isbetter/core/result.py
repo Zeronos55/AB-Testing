@@ -12,9 +12,9 @@ class MethodResult:
 
     method: str
     estimate: float
-    ci_low: float
-    ci_high: float
-    ci_level: float
+    ci_low: float | None
+    ci_high: float | None
+    ci_level: float | None
     p_value: float | None
     statistic: float | None
     df: float | None

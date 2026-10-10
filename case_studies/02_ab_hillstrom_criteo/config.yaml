@@ -1,0 +1,16 @@
+# Email A/B test (Hillstrom-style): two email variants vs no email, randomised per customer.
+#   success   : visit and conversion (superiority, Holm across all success hypotheses)
+#   guardrail : spend per customer must not drop by more than $0.10 (non-inferiority)
+#   CUPED     : last year's spend (`history`) is a pre-experiment covariate for conversion and spend
+experiment: hillstrom_email
+adapter: ab_table
+data: out/hillstrom.csv
+table: {variant_col: segment, mode: unit}
+variants: {baseline: "No E-Mail", candidates: ["Mens E-Mail", "Womens E-Mail"]}
+metrics:
+  - {name: visit, kind: binary, min_effect: 0.01}
+  - {name: conversion, kind: binary, min_effect: 0.002, variance_reduction: cuped, covariate: history}
+  - {name: spend, kind: continuous, role: guardrail, min_effect: 0.10, variance_reduction: cuped, covariate: history}
+dependence: {type: iid}
+decision: {alpha: 0.05, correction: holm}
+seed: 20261010

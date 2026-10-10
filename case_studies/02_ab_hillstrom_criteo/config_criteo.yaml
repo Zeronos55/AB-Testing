@@ -1,0 +1,14 @@
+# Large ad-incrementality test (Criteo-style): about 85% treated, rare binary outcomes.
+# Aggregated straight from the file with DuckDB (table.mode: stats); rows are never loaded.
+experiment: criteo_like_uplift
+adapter: ab_table
+data: out/criteo_like.csv
+table: {variant_col: treatment, mode: stats}
+variants: {baseline: "0", candidates: ["1"]}
+metrics:
+  - {name: visit, kind: binary, min_effect: 0.002}
+  - {name: conversion, kind: binary, min_effect: 0.0005}
+dependence: {type: iid}
+decision: {alpha: 0.05, correction: holm}
+design: {expected_split: {"0": 0.15, "1": 0.85}}
+seed: 20261010

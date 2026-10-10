@@ -21,9 +21,16 @@ def _fmt(x: float | None) -> str:
     return "n/a" if x is None else f"{x:.4g}"
 
 
+def _pval(x: float | None) -> str:
+    """Format a p-value; an exact 0.0 is floating-point underflow, not certainty."""
+    if x is None:
+        return "n/a"
+    return "<1e-300" if x < 1e-300 else f"{x:.4g}"
+
+
 def _row(m: MethodResult) -> str:
     ci = "n/a" if m.ci_low is None else f"[{_fmt(m.ci_low)}, {_fmt(m.ci_high)}]"
-    return f"| {m.method} | {_fmt(m.estimate)} | {ci} | {_fmt(m.p_value)} |"
+    return f"| {m.method} | {_fmt(m.estimate)} | {ci} | {_pval(m.p_value)} |"
 
 
 def render_markdown(result: Result) -> str:
@@ -33,6 +40,7 @@ def render_markdown(result: Result) -> str:
         keep_trailing_newline=True,
         autoescape=False,
     )
+    env.filters["pval"] = _pval
     tpl = env.get_template("report.md.j2")
     return tpl.render(r=result, plan_text=result.plan.pretty(), label_text=LABEL_TEXT, row=_row)
 
@@ -45,6 +53,7 @@ def render_experiment_markdown(exp: ExperimentResult) -> str:
         keep_trailing_newline=True,
         autoescape=False,
     )
+    env.filters["pval"] = _pval
     tpl = env.get_template("experiment.md.j2")
     comparison = env.get_template("_comparison.md.j2").module.comparison
     return tpl.render(

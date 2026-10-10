@@ -6,13 +6,15 @@
 
 ## Status
 
-**Phase 0 built** (paired/iid comparison, verdict, report, calibration harness). Try it:
+**Phases 0-1 built** (iid/paired/clustered/CV-overlap comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study). Try it:
 
 ```bash
 uv sync
 uv run isbetter run examples/toy_paired.yaml
 uv run pytest            # fast tests
-uv run pytest -m slow    # A/A calibration (10,000 replications)
+uv run pytest -m slow    # calibration (10,000 replications)
+uv run python validation/failure_gallery/01_naive_cv_ttest.py   # naive CV t-test fails
+uv run python case_studies/01_fraud_classifiers/run.py          # Phase 1 case study
 ```
 
 Build plan:

@@ -185,3 +185,34 @@ def clustered_pvalues_cr1(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     v = (ua**2).sum(1) / n_a**2 + (ub**2).sum(1) / n_b**2
     v = v * G / (G - 1) * (N - 1) / (N - 2)
     return np.asarray(2 * stats.t.sf(np.abs(est / np.sqrt(v)), G - 1))
+
+
+def cluster_type1(
+    rng: np.random.Generator,
+    reps: int,
+    users: int = 100,
+    sessions: int = 10,
+    icc: float = 0.3,
+    alpha: float = 0.05,
+    chunk: int = 250,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Type I error of (naive row-level Welch, cluster-robust CR1) when randomised by user.
+
+    Each arm has ``users`` users with ``sessions`` correlated rows each (intra-class
+    correlation ``icc``) and there is no treatment effect, so any rejection is a false positive.
+    """
+    from isbetter.simulate.dgp import aa_clustered
+
+    rej = [0, 0]
+    done = 0
+    while done < reps:
+        m = min(chunk, reps - done)
+        a, b = aa_clustered(rng, m, users, sessions, icc)
+        rej[0] += int((clustered_pvalues_naive(a, b) < alpha).sum())
+        rej[1] += int((clustered_pvalues_cr1(a, b) < alpha).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    return (
+        CalibrationResult(rej[0] / reps, reps, alpha, band),
+        CalibrationResult(rej[1] / reps, reps, alpha, band),
+    )

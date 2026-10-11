@@ -5,6 +5,9 @@ sums, so memory use is independent of the row count. All methods that accept a
 :class:`SufficientStats` also work from raw arrays through :meth:`SufficientStats.from_arrays`,
 which guarantees the unit-level and aggregated paths agree.
 
+Raw sums lose about ``log10((mean / sd)^2)`` digits of precision in the variance; that is
+negligible for experiment metrics but would matter for values like epoch timestamps.
+
 ``y`` is the outcome. The optional second variable ``x`` is whatever the analysis pairs with
 ``y`` per unit: a pre-period covariate (CUPED, regression adjustment) or the denominator of a
 ratio metric (delta method).

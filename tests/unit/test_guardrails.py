@@ -90,7 +90,14 @@ CASES = [
     ("no win", [flat(), ok_guard()], False, False, False, "no success metric"),
     ("success worse", [worse(), ok_guard()], False, False, False, "no success metric"),
     ("one of two wins", [flat("a"), win("b"), ok_guard()], False, False, True, "won: b"),
-    ("trivial win ships by default", [trivial(), ok_guard()], False, False, True, "won: conv"),
+    (
+        "trivial win ships by default",
+        [trivial(), ok_guard()],
+        False,
+        False,
+        True,
+        "conv (possibly trivial)",
+    ),
     ("trivial win blocked", [trivial(), ok_guard()], False, True, False, "possibly trivial"),
     (
         "win + one bad of two guards",

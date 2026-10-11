@@ -66,6 +66,7 @@ class ComparisonResult:
     n_pairs: int
     adjusted_p: float | None = None
     alpha_used: float = 0.05
+    family_size: int = 0  # hypotheses corrected together; 0 = unknown (older results)
 
 
 @dataclass

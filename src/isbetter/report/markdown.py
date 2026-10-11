@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from isbetter.core.experiment import ExperimentResult
 from isbetter.core.result import MethodResult, Result
 
 LABEL_TEXT = {
@@ -34,3 +35,25 @@ def render_markdown(result: Result) -> str:
     )
     tpl = env.get_template("report.md.j2")
     return tpl.render(r=result, plan_text=result.plan.pretty(), label_text=LABEL_TEXT, row=_row)
+
+
+def render_experiment_markdown(exp: ExperimentResult) -> str:
+    """Render an A/B experiment: SRM check, ship decisions, then each metric's comparisons."""
+    env = Environment(
+        loader=PackageLoader("isbetter.report", "templates"),
+        undefined=StrictUndefined,
+        keep_trailing_newline=True,
+        autoescape=False,
+    )
+    tpl = env.get_template("experiment.md.j2")
+    comparison = env.get_template("_comparison.md.j2").module.comparison
+    return tpl.render(
+        e=exp,
+        baseline=exp.plan.baseline,
+        plan_text=exp.plan.pretty(),
+        pairs=list(zip(exp.plan.plans, exp.results, strict=True)),
+        label_text=LABEL_TEXT,
+        row=_row,
+        fmt=_fmt,
+        comparison=comparison,
+    )

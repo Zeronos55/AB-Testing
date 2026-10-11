@@ -167,6 +167,8 @@ def decide_ship(
             False,
             listed,
         )
-    names = ", ".join(c.metric for c in winning)
+    names = ", ".join(
+        c.metric + (" (possibly trivial)" if c.status == "trivial_win" else "") for c in winning
+    )
     guard_txt = f"; all {len(guards)} guardrail(s) passed" if guards else ""
     return Decision(candidate, True, f"success metric(s) won: {names}{guard_txt}", False, listed)

@@ -1,0 +1,46 @@
+# {{ e.experiment }}
+
+*isbetter {{ e.package_version }} · seed {{ e.seed }} · {{ e.created_at }}*
+
+## Plan
+
+```
+{{ plan_text }}
+```
+
+## Sample-ratio check
+{% if e.srm %}
+**{{ "FAILED" if e.srm.flagged else "Passed" }}.** {{ e.srm.rationale }}
+
+| Arm | Observed | Expected | Planned share |
+|---|---:|---:|---:|
+{% for arm in e.srm.observed %}| {{ arm }} | {{ "{:,}".format(e.srm.observed[arm]) }} | {{ "{:,.1f}".format(e.srm.expected[arm]) }} | {{ "%.1f"|format(e.srm.expected_share[arm] * 100) }}% |
+{% endfor %}{% if not e.srm.approx_ok %}
+*Warning: an expected count is below 5, so the chi-square approximation is unreliable.*
+{% endif %}{% else %}
+Not applicable: paired and cross-validation designs have equal arm sizes by construction.
+{% endif %}
+## Decision
+
+| Candidate | Decision | Why |
+|---|---|---|
+{% for d in e.decisions %}| {{ d.candidate }} | **{{ "SHIP" if d.ship else "DO NOT SHIP" }}** | {{ d.reason }} |
+{% endfor %}
+{% for d in e.decisions %}### {{ d.candidate }} vs {{ baseline }}
+
+| Metric | Role | Result | Effect | CI | Note |
+|---|---|---|---:|---|---|
+{% for c in d.checks %}| {{ c.metric }} | {{ c.role }} | {{ c.status }} | {{ fmt(c.oriented_estimate) }} | [{{ fmt(c.oriented_ci_low) }}, {{ fmt(c.oriented_ci_high) }}] | {{ c.detail }} |
+{% endfor %}
+{% endfor %}
+Effects are **candidate − baseline**, oriented so positive means the candidate wins. Success-metric
+intervals carry the multiplicity correction ({{ e.plan.correction }} across all success
+hypotheses). Guardrail intervals are two-sided {{ "%.0f"|format((1 - 2 * e.plan.alpha) * 100) }}% intervals, i.e. a one-sided
+test at the unadjusted α = {{ e.plan.alpha }}; a guardrail passes only if the lower limit is above minus its margin.
+
+## Results by metric
+{% for p, res in pairs %}
+### {{ p.metric }} ({{ p.role }})
+{% if p.role == "guardrail" %}
+*Guardrail: the margin below is the non-inferiority margin, not an equivalence band; read the decision above rather than the verdict label.*
+{% endif %}{% for c in res.comparisons %}{{ comparison(c, res, "####", label_text, row) }}{% endfor %}{% endfor %}

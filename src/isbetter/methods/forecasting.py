@@ -9,6 +9,9 @@ include autocovariances up to lag ``h - 1``.
 
 from __future__ import annotations
 
+import math
+from dataclasses import dataclass
+
 import numpy as np
 from scipy import stats
 
@@ -178,3 +181,42 @@ def naive_dm_t(loss_a: np.ndarray, loss_b: np.ndarray, alpha: float = 0.05) -> M
         ),
         diagnostics={"se": float(se), "naive": True},
     )
+
+
+@dataclass(frozen=True)
+class BlockLength:
+    """Suggested block length for a block bootstrap of a (loss-differential) series."""
+
+    stationary: float  # mean block length for the stationary bootstrap
+    circular: float  # fixed block length for the circular / moving-block bootstrap
+    source: str  # "politis_white" or "rule_of_thumb"
+
+    def integer(self, kind: str, n: int) -> int:
+        """Whole-number block length for ``kind``, kept within ``1..n``."""
+        value = self.stationary if kind == "stationary" else self.circular
+        return max(1, min(n, math.ceil(value)))
+
+
+def suggest_block_length(d: np.ndarray) -> BlockLength:
+    """Automatic block length of Politis & White (2004), with the Patton, Politis & White
+    (2009) correction, via ``arch.bootstrap.optimal_block_length``.
+
+    Without ``arch`` (the ``[forecast]`` extra) or when the estimator is undefined for the
+    series (for example a constant), it falls back to the ``ceil(T**(1/3))`` rule of thumb and
+    says so in ``source``; it never fails silently into a different method.
+    """
+    x = np.asarray(d, dtype=np.float64)
+    if x.ndim != 1 or len(x) < 3 or not np.isfinite(x).all():
+        raise ValueError("need a 1-D finite series of at least 3 observations")
+    rule = float(math.ceil(len(x) ** (1 / 3)))
+    try:
+        from arch.bootstrap import optimal_block_length
+    except ImportError:
+        return BlockLength(rule, rule, "rule_of_thumb")
+    if float(x.std()) == 0.0:
+        return BlockLength(rule, rule, "rule_of_thumb")
+    res = optimal_block_length(x)
+    stationary, circular = float(res["stationary"].iloc[0]), float(res["circular"].iloc[0])
+    if not (np.isfinite(stationary) and np.isfinite(circular)):
+        return BlockLength(rule, rule, "rule_of_thumb")
+    return BlockLength(stationary, circular, "politis_white")

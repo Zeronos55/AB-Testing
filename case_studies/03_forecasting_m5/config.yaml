@@ -1,0 +1,11 @@
+# Compare ARIMA and a global LightGBM against seasonal-naive on one-week-ahead (h = 7) daily sales.
+# Losses are per-origin scaled absolute errors (MASE) averaged over the series; run.py writes them.
+experiment: forecasting_m5
+adapter: csv_long
+data: out/losses.csv
+variants: {baseline: seasonal_naive, candidates: [arima, lightgbm]}
+metric: {name: mase_h7, higher_is_better: false}   # a loss: lower is better
+dependence: {type: timeseries, horizon: 7}         # 7-step errors overlap -> DM uses 6 lags
+decision: {min_effect: 0.02, alpha: 0.05, correction: holm}
+seed: 20261010
+report: {format: [markdown]}

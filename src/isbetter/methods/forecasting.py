@@ -83,8 +83,11 @@ def diebold_mariano(
     ``gamma_k`` is divided by ``T`` (not ``T - k``). With ``hln`` the statistic is multiplied by
     ``sqrt((T + 1 - 2h + h(h-1)/T) / T)`` and compared with ``t(T - 1)`` (otherwise ``N(0, 1)``).
     The confidence interval inverts that statistic. If ``hac_lags`` is given, the variance
-    uses that many lags with Bartlett weights instead (never negative; use it when the
-    rectangular estimate is not positive, which can happen for ``h > 1`` and small ``T``).
+    uses that many lags with Bartlett weights instead. That estimate is never negative, so it
+    is the fallback when the rectangular one is not positive (``h > 1`` and small ``T``), but
+    it down-weights real autocovariances: on an exact MA(h - 1) differential it rejects a true
+    null more often than the rectangular estimate (about 8% vs 5% at h = 3, nominal 5%), and
+    it needs ``hac_lags`` of roughly ``2h`` or more to come close.
     """
     if horizon < 1:
         raise ValueError("horizon must be >= 1")

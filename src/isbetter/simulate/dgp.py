@@ -106,3 +106,22 @@ def aa_clustered(
         return user + rng.normal(0.0, np.sqrt(1 - icc), (reps, n_users, sessions))
 
     return arm(), arm()
+
+
+def dm_null_losses(
+    rng: np.random.Generator, reps: int, T: int, h: int, rho: float = 0.5
+) -> tuple[np.ndarray, np.ndarray]:
+    """Squared-error losses of two equally accurate ``h``-step forecasters, shape (reps, T).
+
+    The ``h``-step error at origin ``t`` is the sum of the ``h`` shocks ``eps_t .. eps_{t+h-1}``
+    (an MA(h - 1) process), so errors at neighbouring origins overlap and the loss
+    differential is autocorrelated up to lag ``h - 1``. The two forecasters have shock
+    correlation ``rho`` and identical expected loss ``h``, so ``E[L_A - L_B] = 0``.
+    """
+    ea = rng.standard_normal((reps, T + h - 1))
+    eb = rho * ea + np.sqrt(1 - rho * rho) * rng.standard_normal((reps, T + h - 1))
+    out = []
+    for e in (ea, eb):
+        c = np.concatenate([np.zeros((reps, 1)), np.cumsum(e, axis=1)], axis=1)
+        out.append((c[:, h : h + T] - c[:, :T]) ** 2)
+    return out[0], out[1]

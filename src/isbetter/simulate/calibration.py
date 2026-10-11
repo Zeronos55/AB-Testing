@@ -108,3 +108,80 @@ def cv_type1(
         CalibrationResult(rej[0] / reps, reps, alpha, band),
         CalibrationResult(rej[1] / reps, reps, alpha, band),
     )
+
+
+def cuped_pvalues(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Row-wise CUPED p-values for (reps, n, 2) arms whose channels are (y, x)."""
+    ya, xa, yb, xb = a[..., 0], a[..., 1], b[..., 0], b[..., 1]
+    na, nb = ya.shape[1], yb.shape[1]
+    sxx = ((xa - xa.mean(1, keepdims=True)) ** 2).sum(1) + (
+        (xb - xb.mean(1, keepdims=True)) ** 2
+    ).sum(1)
+    sxy = ((xa - xa.mean(1, keepdims=True)) * (ya - ya.mean(1, keepdims=True))).sum(1) + (
+        (xb - xb.mean(1, keepdims=True)) * (yb - yb.mean(1, keepdims=True))
+    ).sum(1)
+    theta = (sxy / sxx)[:, None]
+    wa, wb = ya - theta * xa, yb - theta * xb
+    se2a, se2b = wa.var(1, ddof=1) / na, wb.var(1, ddof=1) / nb
+    est = wa.mean(1) - wb.mean(1)
+    df = np.maximum((se2a + se2b) ** 2 / (se2a**2 / (na - 1) + se2b**2 / (nb - 1)) - 1.0, 1.0)
+    return np.asarray(2 * stats.t.sf(np.abs(est / np.sqrt(se2a + se2b)), df))
+
+
+def cuped_baseline_pvalues(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Row-wise unadjusted Welch p-values on the outcome channel of (reps, n, 2) arms."""
+    return welch_pvalues(a[..., 0], b[..., 0])
+
+
+def two_proportion_pvalues(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Row-wise pooled two-proportion z-test p-values for (reps, n) 0/1 matrices."""
+    na, nb = a.shape[1], b.shape[1]
+    p1, p2 = a.mean(1), b.mean(1)
+    pooled = (a.sum(1) + b.sum(1)) / (na + nb)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        z = (p1 - p2) / np.sqrt(pooled * (1 - pooled) * (1 / na + 1 / nb))
+    p = 2 * stats.norm.sf(np.abs(z))
+    return np.asarray(np.where(np.isnan(p), 1.0, p))  # no successes anywhere: cannot reject
+
+
+def srm_rejection_rate(
+    rng: np.random.Generator,
+    reps: int,
+    total: int,
+    shares: tuple[float, ...],
+    alpha: float = 0.001,
+) -> CalibrationResult:
+    """How often the SRM chi-square rejects when assignment really follows ``shares``."""
+    counts = rng.multinomial(total, shares, size=reps).astype(np.float64)
+    exp = total * np.asarray(shares)
+    chi2 = ((counts - exp) ** 2 / exp).sum(1)
+    p = stats.chi2.sf(chi2, len(shares) - 1)
+    return CalibrationResult(float((p < alpha).mean()), reps, alpha, mc_band(alpha, reps))
+
+
+def clustered_pvalues_naive(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Row-wise Welch p-values that IGNORE clustering: all sessions treated as independent rows."""
+    return welch_pvalues(a.reshape(a.shape[0], -1), b.reshape(b.shape[0], -1))
+
+
+def clustered_pvalues_cr1(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Row-wise CR1 cluster-robust p-values with users as clusters, t(G - 1) inference.
+
+    With equal sessions per user the CR1 two-arm difference reduces to a Welch-type test on
+    per-user means weighted equally; this follows the same algebra as
+    :func:`isbetter.methods.cluster.cluster_robust_diff` (checked against it in the tests).
+    """
+    reps, ga, s = a.shape
+    gb = b.shape[1]
+    ma, mb = a.mean(2), b.mean(2)  # per-user means
+    N, G = (ga + gb) * s, ga + gb
+    est = ma.mean(1) - mb.mean(1)
+    # OLS of rows on [1, arm]: residual of a row = row - arm mean; cluster score = sum of rows.
+    ua = (a - a.mean((1, 2), keepdims=True)).sum(2)  # (reps, ga) cluster sums of residuals
+    ub = (b - b.mean((1, 2), keepdims=True)).sum(2)
+    n_a, n_b = ga * s, gb * s
+    # Sandwich variance of the arm coefficient for X = [1, arm]: each user's influence is
+    # U_g / n_arm, so Var = sum_a(U^2) / n_a^2 + sum_b(U^2) / n_b^2.
+    v = (ua**2).sum(1) / n_a**2 + (ub**2).sum(1) / n_b**2
+    v = v * G / (G - 1) * (N - 1) / (N - 2)
+    return np.asarray(2 * stats.t.sf(np.abs(est / np.sqrt(v)), G - 1))

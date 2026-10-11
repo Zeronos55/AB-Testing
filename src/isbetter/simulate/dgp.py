@@ -52,3 +52,57 @@ def cv_null_diffs(
             out[:, col] = mse[0] - mse[1]
             col += 1
     return out
+
+
+def aa_covariate(
+    rng: np.random.Generator,
+    reps: int,
+    n: int,
+    rho: float = 0.7,
+    skew: bool = True,
+    curvature: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Null A/B world with a pre-experiment covariate, shape (reps, n, 2) per arm.
+
+    Channel 0 is the outcome ``y`` and channel 1 the covariate ``x``. Both arms are drawn from
+    the same distribution (no treatment effect). ``corr(x, y) = rho`` for the linear part; with
+    ``skew`` the outcome noise is a centred exponential, so the normal approximation is only
+    approximate. ``curvature > 0`` adds a quadratic term in the covariate that a linear
+    adjustment cannot remove (a misspecified-adjustment stress test).
+    """
+
+    def arm() -> np.ndarray:
+        zx = rng.normal(size=(reps, n))
+        e = rng.exponential(1.0, (reps, n)) - 1.0 if skew else rng.normal(size=(reps, n))
+        quad = curvature * 4 * rho * (zx**2 - 1) / np.sqrt(2)
+        y = 20 + 4 * rho * zx + quad + 4 * np.sqrt(1 - rho * rho) * e
+        return np.stack([y, 50 + 10 * zx], axis=-1)
+
+    return arm(), arm()
+
+
+def aa_binary(
+    rng: np.random.Generator, reps: int, n: int, p: float = 0.1
+) -> tuple[np.ndarray, np.ndarray]:
+    """Two independent Bernoulli(p) arms (a null world), shape (reps, n), dtype int8."""
+    return (
+        (rng.random((reps, n)) < p).astype(np.int8),
+        (rng.random((reps, n)) < p).astype(np.int8),
+    )
+
+
+def aa_clustered(
+    rng: np.random.Generator, reps: int, n_users: int, sessions: int = 5, icc: float = 0.5
+) -> tuple[np.ndarray, np.ndarray]:
+    """Null A/B world randomised by USER with several sessions per user.
+
+    Returns two arrays of shape (reps, n_users, sessions): sessions of one user share a user
+    effect, so rows are correlated within user. The intra-class correlation is ``icc``. Users
+    are disjoint across arms (each user sees one variant) and there is no treatment effect.
+    """
+
+    def arm() -> np.ndarray:
+        user = rng.normal(0.0, np.sqrt(icc), (reps, n_users, 1))
+        return user + rng.normal(0.0, np.sqrt(1 - icc), (reps, n_users, sessions))
+
+    return arm(), arm()

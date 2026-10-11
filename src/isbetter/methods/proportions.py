@@ -41,7 +41,10 @@ def wilson_interval(x: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
     centre = p + z * z / (2 * n)
     half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
     denom = 1 + z * z / n
-    return float((centre - half) / denom), float((centre + half) / denom)
+    # The limits are exactly 0 (at x = 0) and 1 (at x = n); floating point lands an ulp off.
+    lo = 0.0 if x == 0 else max(0.0, float((centre - half) / denom))
+    hi = 1.0 if x == n else min(1.0, float((centre + half) / denom))
+    return lo, hi
 
 
 def jeffreys_interval(x: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
@@ -72,8 +75,8 @@ def newcombe_interval(
     l2, u2 = wilson_interval(x2, n2, alpha)
     d = p1 - p2
     return (
-        float(d - np.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2)),
-        float(d + np.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2)),
+        max(-1.0, float(d - np.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2))),
+        min(1.0, float(d + np.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2))),
     )
 
 
@@ -132,8 +135,8 @@ def two_proportion_z(
             "p_b": p2,
             "se": se,
             "ci_method": "newcombe" if use_newcombe else "wald",
-            "wilson_a": wilson_interval(x1, n1, alpha),
-            "wilson_b": wilson_interval(x2, n2, alpha),
+            "wilson_a": list(wilson_interval(x1, n1, alpha)),
+            "wilson_b": list(wilson_interval(x2, n2, alpha)),
         },
     )
 

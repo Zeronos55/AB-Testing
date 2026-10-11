@@ -346,3 +346,12 @@ def test_cli_bad_arm_labels_exit_2(tmp_path):
     res = CliRunner().invoke(app, ["run", str(cfg), "--out", str(tmp_path / "r.md")])
     assert res.exit_code == 2
     assert "not named in the config" in res.output
+
+
+def test_underflowed_p_values_are_not_printed_as_zero():
+    from isbetter.report.markdown import _pval
+
+    assert _pval(0.0) == "<1e-300"
+    assert _pval(3.5e-17) == "3.5e-17"
+    assert _pval(0.04321) == "0.04321"
+    assert _pval(None) == "n/a"

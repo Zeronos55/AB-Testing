@@ -13,7 +13,7 @@
 {{ row(c.primary) }}
 {% for m in c.cross_checks %}{{ row(m) }}
 {% endfor %}
-{% if c.adjusted_p is not none %}Multiplicity ({{ r.plan.correction }} across {{ n_family }} {{ 'candidates' if n_family == r.comparisons|length else 'hypotheses' }}): adjusted p = {{ "%.4g"|format(c.adjusted_p) }}; CIs use per-comparison alpha = {{ "%.4g"|format(c.alpha_used) }}.
+{% if c.adjusted_p is not none %}Multiplicity ({{ r.plan.correction }} across {{ n_family }} {{ 'candidates' if n_family == r.comparisons|length else 'hypotheses' }}): adjusted p = {{ c.adjusted_p|pval }}; CIs use per-comparison alpha = {{ "%.4g"|format(c.alpha_used) }}.
 
 {% endif %}Oriented effect: {{ "%.4g"|format(c.oriented_estimate) }} (CI {{ "%.4g"|format(c.oriented_ci_low) }} to {{ "%.4g"|format(c.oriented_ci_high) }}), minimum effect of interest δ = {{ r.plan.min_effect }}.
 

@@ -28,7 +28,7 @@ app = ["streamlit"]
 docs = ["mkdocs-material"]
 
 [dependency-groups]
-dev = ["pytest>=8", "hypothesis>=6", "pytest-xdist", "ruff", "mypy", "types-PyYAML", "statsmodels", "scikit-learn", "lightgbm", "mlxtend", "matplotlib", "pandas"]
+dev = ["pytest>=8", "hypothesis>=6", "pytest-xdist", "ruff", "mypy", "types-PyYAML", "statsmodels", "scikit-learn", "lightgbm", "mlxtend", "matplotlib", "pandas", "duckdb", "polars"]
 
 [project.scripts]
 isbetter = "isbetter.cli:app"

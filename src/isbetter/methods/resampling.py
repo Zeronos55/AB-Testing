@@ -1,4 +1,4 @@
-"""Memory-safe resampling: paired bootstrap and sign-flip permutation.
+"""Memory-safe resampling: paired bootstrap, block bootstrap and sign-flip permutation.
 
 Both operate on the vector of paired differences ``d`` (never on both arms), and
 process resamples in blocks so memory stays O(block * n), never O(B * n).
@@ -154,4 +154,76 @@ def sign_flip_permutation(
             f"exchangeable ({how})."
         ),
         diagnostics={"exact": exact},
+    )
+
+
+def _block_indices(
+    kind: str, n: int, block_len: int, rows: int, rng: np.random.Generator
+) -> np.ndarray:
+    """``rows`` resampled index vectors of length ``n`` for a block bootstrap."""
+    if kind == "circular":
+        n_blocks = -(-n // block_len)  # ceil
+        starts = rng.integers(0, n, size=(rows, n_blocks))
+        idx = (starts[:, :, None] + np.arange(block_len)[None, None, :]) % n
+        return idx.reshape(rows, n_blocks * block_len)[:, :n]
+    # Stationary (Politis & Romano, 1994): a new block starts with probability 1/block_len,
+    # otherwise the series continues, so block lengths are geometric with mean block_len.
+    fresh = rng.random((rows, n)) < 1.0 / block_len
+    fresh[:, 0] = True
+    starts = rng.integers(0, n, size=(rows, n))
+    pos = np.arange(n)[None, :]
+    last = np.maximum.accumulate(np.where(fresh, pos, 0), axis=1)
+    return (np.take_along_axis(starts, last, axis=1) + (pos - last)) % n
+
+
+def block_bootstrap(
+    a: np.ndarray,
+    b: np.ndarray,
+    rng: np.random.Generator,
+    block_len: int,
+    kind: str = "stationary",
+    n_resamples: int = 9_999,
+    alpha: float = 0.05,
+    batch: int = 200,
+) -> MethodResult:
+    """Percentile block-bootstrap CI for the mean of a serially dependent difference ``a - b``.
+
+    Resampling whole blocks keeps the autocorrelation of the loss differential inside each
+    block, so the interval is valid for time series where the iid bootstrap is not.
+    ``kind`` is ``"stationary"`` (random geometric block lengths with mean ``block_len``,
+    Politis & Romano 1994) or ``"circular"`` (fixed length, wrapping around the end,
+    Politis & Romano 1992). Memory is O(batch * n).
+    """
+    if kind not in ("stationary", "circular"):
+        raise ValueError("kind must be 'stationary' or 'circular'")
+    d = _diffs(a, b)
+    n = len(d)
+    if not 1 <= block_len <= n:
+        raise ValueError(f"block_len must be between 1 and the number of origins ({n})")
+    means = np.empty(n_resamples)
+    step = _block(batch, n)
+    for start in range(0, n_resamples, step):
+        stop = min(start + step, n_resamples)
+        means[start:stop] = d[_block_indices(kind, n, block_len, stop - start, rng)].mean(axis=1)
+    lo, hi = np.quantile(means, [alpha / 2, 1 - alpha / 2])
+    return MethodResult(
+        method=f"{kind}_block_bootstrap",
+        estimate=float(d.mean()),
+        ci_low=float(lo),
+        ci_high=float(hi),
+        ci_level=1 - alpha,
+        p_value=None,
+        statistic=None,
+        df=None,
+        n_effective=float(n),
+        rationale=(
+            f"{kind.capitalize()} block bootstrap of the mean loss differential "
+            f"(mean block length {block_len}, {n_resamples} resamples): resamples blocks so "
+            "serial dependence is preserved; makes no normality assumption."
+        ),
+        diagnostics={
+            "se": float(means.std(ddof=1)),
+            "block_len": block_len,
+            "n_resamples": n_resamples,
+        },
     )

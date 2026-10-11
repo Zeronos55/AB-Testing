@@ -28,6 +28,7 @@ ROUTES: dict[str, tuple[str, tuple[str, ...]]] = {
     "paired": ("paired_t", ("paired_bootstrap", "sign_flip_permutation")),
     "clustered": ("cluster_robust_diff", ("cluster_bootstrap",)),
     "cv_overlap": ("nadeau_bengio", ()),
+    "timeseries": ("diebold_mariano_hln", ("stationary_block_bootstrap",)),
 }
 
 # dependence=iid routes by (metric kind, variance reduction)
@@ -40,8 +41,6 @@ IID_ROUTES: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
     ("binary", "regression"): ("regression_adjustment", ("two_proportion_z",)),
     ("ratio", "none"): ("delta_method", ("ratio_bootstrap",)),
 }
-
-_PHASE = {"timeseries": 3}
 
 
 @dataclass
@@ -122,15 +121,19 @@ def route(
                 f"dependence '{dep.kind}' supports neither ratio metrics nor variance reduction "
                 "yet. Refusing to drop that part of the analysis silently."
             )
+        if dep.kind == "timeseries" and kind != "continuous":
+            raise UnsupportedPlan(
+                f"dependence 'timeseries' compares per-origin losses (continuous); metric kind "
+                f"'{kind}' is not routable. Refusing to fall back to a naive test."
+            )
         if kind == "binary" and dep.kind in ("paired", "cv_overlap"):
             raise UnsupportedPlan(
                 f"binary metrics under dependence '{dep.kind}' need a paired test on item "
                 "correctness (isbetter.methods.classification.mcnemar); not routable from config."
             )
         return ROUTES[dep.kind]
-    phase = _PHASE.get(dep.kind, "later")
     raise UnsupportedPlan(
-        f"dependence '{dep.kind}' is not implemented yet (planned for phase {phase}). "
+        f"dependence '{dep.kind}' is not implemented yet. "
         "Refusing to fall back to a naive test that would give invalid inference."
     )
 

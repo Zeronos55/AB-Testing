@@ -194,7 +194,7 @@ class BlockLength:
     def integer(self, kind: str, n: int) -> int:
         """Whole-number block length for ``kind``, kept within ``1..n``."""
         value = self.stationary if kind == "stationary" else self.circular
-        return max(1, min(n, math.ceil(value)))
+        return max(1, min(n, round(value)))
 
 
 def suggest_block_length(d: np.ndarray) -> BlockLength:

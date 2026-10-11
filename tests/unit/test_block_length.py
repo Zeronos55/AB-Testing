@@ -32,7 +32,7 @@ def test_more_autocorrelation_gives_longer_blocks():
 
 def test_integer_rounding_is_clipped():
     bl = BlockLength(stationary=3.2, circular=0.2, source="politis_white")
-    assert bl.integer("stationary", 100) == 4
+    assert bl.integer("stationary", 100) == 3
     assert bl.integer("circular", 100) == 1
     assert BlockLength(500.0, 500.0, "politis_white").integer("circular", 50) == 50
 

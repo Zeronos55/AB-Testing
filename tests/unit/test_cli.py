@@ -22,11 +22,11 @@ def test_cli_unsupported_exits_2(tmp_path):
     cfg = tmp_path / "c.yaml"
     cfg.write_text(
         "experiment: x\ndata: d.csv\nvariants: {baseline: a, candidates: [b]}\n"
-        "metric: {name: m}\ndependence: {type: timeseries}\n"
+        "metric: {name: m, kind: binary}\ndependence: {type: timeseries}\n"
     )
     res = CliRunner().invoke(app, ["run", str(cfg), "--out", str(tmp_path / "r.md")])
     assert res.exit_code == 2
-    assert "not implemented" in res.output
+    assert "not routable" in res.output
 
 
 def run_size(*args):
@@ -68,3 +68,13 @@ def test_plan_size_reports_power_and_mde_for_fixed_n():
 def test_plan_size_errors_exit_2(args, msg):
     res = run_size(*args)
     assert res.exit_code == 2 and msg in res.output
+
+
+def test_cli_runs_forecast_example(tmp_path):
+    out = tmp_path / "r.md"
+    res = CliRunner().invoke(app, ["run", str(EX / "toy_forecast.yaml"), "--out", str(out)])
+    assert res.exit_code == 0, res.output
+    assert "diebold_mariano_hln" in res.output  # plan printed before running
+    text = out.read_text()
+    for needle in ("Verdict", "diebold_mariano_hln", "stationary_block_bootstrap", "Block length"):
+        assert needle in text

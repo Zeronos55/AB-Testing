@@ -13,6 +13,10 @@ the probabilities saturate at 1.
   J. Portfolio Management 40).
 * :func:`min_track_record`: how many observations are needed before the PSR clears a
   confidence level.
+* :func:`sharpe_block_bootstrap`: a Sharpe ratio (or Sharpe ratio difference) interval that
+  survives serial dependence in returns, by resampling blocks.
+* :func:`spa_vs_buy_and_hold` / :func:`stepm_vs_buy_and_hold`: many strategies against a
+  benchmark, wrapping the ``arch`` tests in :mod:`isbetter.methods.superior_predictive`.
 
 Formulas (``gamma3`` skewness, ``gamma4`` raw kurtosis, normal = 3)::
 
@@ -28,7 +32,9 @@ evaluated, which is why the number of trials must come from a registry
 
 from __future__ import annotations
 
+import dataclasses
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -36,6 +42,9 @@ import numpy as np
 from scipy import stats
 
 from isbetter.core.result import MethodResult
+from isbetter.methods.forecasting import suggest_block_length
+from isbetter.methods.resampling import _block, _block_indices
+from isbetter.methods.superior_predictive import spa_test, stepm
 
 EULER_GAMMA = 0.5772156649015329
 
@@ -292,4 +301,187 @@ def min_track_record(returns: Any, sr_benchmark: float = 0.0, alpha: float = 0.0
             "enough": bool(enough),
             "alpha": alpha,
         },
+    )
+
+
+# ------------------------------------------------------------ block-bootstrap Sharpe interval
+
+
+def _sharpe_rows(x: np.ndarray) -> np.ndarray:
+    """Per-row Sharpe ratio (ddof=1) of a ``(rows, n)`` matrix."""
+    sd = x.std(axis=1, ddof=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return np.asarray(x.mean(axis=1) / sd)
+
+
+def _return_block_length(series: list[np.ndarray], kind: str) -> tuple[int, str]:
+    """Politis-White block length for Sharpe ratios of ``series``.
+
+    The Sharpe ratio depends on the mean *and* the variance, and returns are often
+    uncorrelated while their squares are strongly correlated (volatility clustering). The
+    length is therefore the longest suggested for the returns and for their squared deviations.
+    """
+    n = len(series[0])
+    best, source = 1, "politis_white"
+    for r in series:
+        for x in (r, (r - r.mean()) ** 2):
+            sug = suggest_block_length(x)
+            best = max(best, sug.integer(kind, n))
+            if sug.source != "politis_white":
+                source = sug.source
+    return best, source
+
+
+def sharpe_block_bootstrap(
+    returns: Any,
+    rng: np.random.Generator,
+    benchmark: Any | None = None,
+    block_len: int | None = None,
+    kind: str = "stationary",
+    n_resamples: int = 4_999,
+    alpha: float = 0.05,
+    batch: int = 200,
+) -> MethodResult:
+    """Percentile block-bootstrap interval for a Sharpe ratio, or a Sharpe ratio difference.
+
+    Without ``benchmark`` the statistic is the per-period Sharpe ratio of ``returns``. With a
+    benchmark (for example buy-and-hold) returns and benchmark are resampled with the *same*
+    block indices, which keeps their contemporaneous correlation, and the statistic is
+    ``SR(returns) - SR(benchmark)``. Resampling blocks keeps the serial dependence of the
+    series inside each block; an iid bootstrap (``block_len=1``) treats periods as independent
+    and is too narrow whenever returns are autocorrelated.
+
+    ``kind`` is ``stationary`` (geometric block lengths, mean ``block_len``) or ``circular``.
+    Without ``block_len`` it is chosen automatically (see :func:`_return_block_length`) and the
+    source is in ``diagnostics['block_len_source']``. Memory is O(batch * T).
+    """
+    if kind not in ("stationary", "circular"):
+        raise ValueError("kind must be 'stationary' or 'circular'")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be in (0, 1)")
+    if n_resamples < 100:
+        raise ValueError("n_resamples must be at least 100")
+    r = np.asarray(returns, dtype=np.float64)
+    series = [r]
+    if benchmark is not None:
+        b = np.asarray(benchmark, dtype=np.float64)
+        if b.shape != r.shape:
+            raise ValueError("benchmark must have the same length as returns")
+        series.append(b)
+    for x in series:
+        return_moments(x)  # validates: 1-D, finite, not constant, at least 3 observations
+    n = len(r)
+    if block_len is None:
+        length, source = _return_block_length(series, kind)
+    else:
+        if not 1 <= block_len <= n:
+            raise ValueError(f"block_len must be between 1 and the number of periods ({n})")
+        length, source = int(block_len), "user"
+
+    def stat(rows: np.ndarray) -> np.ndarray:
+        sr = _sharpe_rows(r[rows])
+        return sr if benchmark is None else sr - _sharpe_rows(series[1][rows])
+
+    est = float(return_moments(r).sharpe)
+    if benchmark is not None:
+        est -= float(return_moments(series[1]).sharpe)
+    draws = np.empty(n_resamples)
+    step = _block(batch, n)
+    for start in range(0, n_resamples, step):
+        stop = min(start + step, n_resamples)
+        draws[start:stop] = stat(_block_indices(kind, n, length, stop - start, rng))
+    lo, hi = np.quantile(draws, [alpha / 2, 1 - alpha / 2])
+    what = "Sharpe ratio" if benchmark is None else "Sharpe ratio difference versus the benchmark"
+    how = "iid bootstrap (block length 1)" if length == 1 else f"{kind} block bootstrap"
+    return MethodResult(
+        method=f"{kind}_block_bootstrap_sharpe" if length > 1 else "iid_bootstrap_sharpe",
+        estimate=est,
+        ci_low=float(lo),
+        ci_high=float(hi),
+        ci_level=1 - alpha,
+        p_value=None,
+        statistic=None,
+        df=None,
+        n_effective=float(n),
+        rationale=(
+            f"Percentile {how} interval for the {what} ({n_resamples} resamples, mean block "
+            f"length {length}, {source}): resampling blocks keeps the serial dependence of "
+            "returns and of their volatility, which an iid bootstrap ignores."
+        ),
+        diagnostics={
+            "se": float(draws.std(ddof=1)),
+            "block_len": length,
+            "block_len_source": source,
+            "n_resamples": n_resamples,
+            "kind": kind,
+            "versus_benchmark": benchmark is not None,
+        },
+    )
+
+
+# ------------------------------------------------ many strategies against buy-and-hold
+
+
+def _loss_inputs(
+    returns: Mapping[str, Any], benchmark: Any
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    """Losses (negative returns) so that a better strategy has a *lower* loss than the benchmark."""
+    bench = -np.asarray(benchmark, dtype=np.float64)
+    if len(returns) < 1:
+        raise ValueError("need at least one strategy to compare with the benchmark")
+    return bench, {str(k): -np.asarray(v, dtype=np.float64) for k, v in returns.items()}
+
+
+def _as_return_result(res: MethodResult, note: str) -> MethodResult:
+    """Re-express a loss-based result in returns: ``estimate`` = best mean excess return."""
+    diag = dict(res.diagnostics)
+    if "mean_loss_difference" in diag:
+        diag["mean_excess_return"] = {k: -v for k, v in diag.pop("mean_loss_difference").items()}
+    return dataclasses.replace(
+        res,
+        estimate=-res.estimate,
+        rationale=f"{note} {res.rationale}",
+        diagnostics=diag,
+    )
+
+
+def spa_vs_buy_and_hold(
+    returns: Mapping[str, Any],
+    benchmark: Any,
+    rng: np.random.Generator,
+    reps: int = 1000,
+    block_len: int | None = None,
+    alpha: float = 0.05,
+) -> MethodResult:
+    """Hansen's SPA: does ANY strategy beat the benchmark (for example buy-and-hold)?
+
+    Runs :func:`~isbetter.methods.superior_predictive.spa_test` on losses defined as negative
+    returns, so a strategy beats the benchmark when its mean return is higher. ``estimate`` is
+    the best mean excess return over the benchmark; ``p_value`` is Hansen's consistent p-value,
+    which accounts for having searched over all strategies in ``returns``.
+    """
+    bench, losses = _loss_inputs(returns, benchmark)
+    res = spa_test(bench, losses, rng, reps=reps, block_len=block_len, alpha=alpha)
+    return _as_return_result(
+        res, "Strategies are scored by loss = -return, so lower loss means higher return."
+    )
+
+
+def stepm_vs_buy_and_hold(
+    returns: Mapping[str, Any],
+    benchmark: Any,
+    rng: np.random.Generator,
+    reps: int = 1000,
+    block_len: int | None = None,
+    size: float = 0.05,
+) -> MethodResult:
+    """Romano-Wolf StepM: which strategies beat the benchmark, controlling the family-wise error.
+
+    Same loss convention as :func:`spa_vs_buy_and_hold`; ``diagnostics['superior_models']``
+    lists the strategies that significantly out-earn the benchmark (often none).
+    """
+    bench, losses = _loss_inputs(returns, benchmark)
+    res = stepm(bench, losses, rng, size=size, reps=reps, block_len=block_len)
+    return _as_return_result(
+        res, "Strategies are scored by loss = -return, so lower loss means higher return."
     )

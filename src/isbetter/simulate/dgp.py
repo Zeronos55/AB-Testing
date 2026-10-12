@@ -125,3 +125,47 @@ def dm_null_losses(
         c = np.concatenate([np.zeros((reps, 1)), np.cumsum(e, axis=1)], axis=1)
         out.append((c[:, h : h + T] - c[:, :T]) ** 2)
     return out[0], out[1]
+
+
+def ar1_garch_returns(
+    rng: np.random.Generator,
+    reps: int,
+    T: int,
+    sharpe: float = 0.05,
+    vol: float = 0.01,
+    phi: float = 0.2,
+    alpha: float = 0.1,
+    beta: float = 0.85,
+    df: float | None = 5.0,
+    burn: int = 200,
+) -> np.ndarray:
+    """Per-period strategy returns with serial correlation and volatility clustering, (reps, T).
+
+    ``r_t = m + x_t`` with ``x_t = phi x_{t-1} + e_t``, ``e_t = s_t z_t`` and
+    ``s_t^2 = w + alpha e_{t-1}^2 + beta s_{t-1}^2`` (GARCH(1,1)); ``z_t`` is standardised
+    Student-t with ``df`` degrees of freedom (normal if ``df`` is None). ``m`` and ``w`` are set
+    so the unconditional standard deviation of ``r`` is ``vol`` and its true per-period Sharpe
+    ratio is exactly ``sharpe``. Positive ``phi`` makes the mean of ``r`` more variable than
+    iid sampling suggests, so an iid bootstrap interval for the Sharpe ratio is too narrow.
+    """
+    if not (0 <= alpha and 0 <= beta and alpha + beta < 1):
+        raise ValueError("need alpha, beta >= 0 and alpha + beta < 1 (stationary GARCH)")
+    if not -1 < phi < 1:
+        raise ValueError("phi must be in (-1, 1)")
+    if df is not None and df <= 4:
+        raise ValueError("df must exceed 4 (finite kurtosis) or be None")
+    var_e = vol**2 * (1.0 - phi**2)  # unconditional variance of the GARCH innovations
+    omega = var_e * (1.0 - alpha - beta)
+    scale = np.sqrt((df - 2.0) / df) if df is not None else 1.0
+    out = np.empty((reps, T))
+    x = np.zeros(reps)
+    s2 = np.full(reps, var_e)
+    e_prev = np.zeros(reps)
+    for t in range(-burn, T):
+        s2 = omega + alpha * e_prev**2 + beta * s2
+        z = rng.standard_t(df, reps) * scale if df is not None else rng.standard_normal(reps)
+        e_prev = np.sqrt(s2) * z
+        x = phi * x + e_prev
+        if t >= 0:
+            out[:, t] = x
+    return out + sharpe * vol

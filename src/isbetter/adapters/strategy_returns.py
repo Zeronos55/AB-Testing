@@ -31,10 +31,10 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import numpy as np
-from scipy import stats
 
 from isbetter.core.dependence import TimeSeries
 from isbetter.core.schema import CanonicalTable, SchemaError, build_table
+from isbetter.methods.finance import return_moments
 
 RETURN_METRIC = "return"
 
@@ -82,18 +82,19 @@ def _trial_key(name: str, params: Mapping[str, Any]) -> str:
 
 
 def _describe(name: str, params: Mapping[str, Any], returns: np.ndarray) -> TrialRecord:
-    std = float(returns.std(ddof=1))
-    if std == 0.0:
-        raise ValueError(f"trial {name!r} has constant returns: its Sharpe ratio is undefined")
+    try:
+        m = return_moments(returns)
+    except ValueError as exc:
+        raise ValueError(f"trial {name!r}: {exc}") from exc
     return TrialRecord(
         name=name,
         params=dict(params),
-        n_obs=len(returns),
-        mean=float(returns.mean()),
-        std=std,
-        sharpe=float(returns.mean() / std),
-        skew=float(stats.skew(returns, bias=True)),
-        kurtosis=float(stats.kurtosis(returns, fisher=False, bias=True)),
+        n_obs=m.n,
+        mean=m.mean,
+        std=m.std,
+        sharpe=m.sharpe,
+        skew=m.skew,
+        kurtosis=m.kurtosis,
         returns_sha256=hashlib.sha256(np.ascontiguousarray(returns).tobytes()).hexdigest(),
         logged_at=datetime.now(UTC).isoformat(timespec="seconds"),
     )

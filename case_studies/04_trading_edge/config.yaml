@@ -1,0 +1,13 @@
+# Is the best moving-average rule better than buy-and-hold, as a standard test sees it?
+# run.py writes out/returns_luck.csv (the best variant's and buy-and-hold's daily returns).
+# This test knows nothing about the 272 rules that were tried to find the best one: that is
+# what the Deflated Sharpe Ratio and PBO in REPORT.md add.
+experiment: trading_edge
+adapter: csv_long
+data: out/returns_luck.csv
+variants: {baseline: buy_and_hold, candidates: [best_variant]}
+metric: {name: return, higher_is_better: true}
+dependence: {type: timeseries, horizon: 1}
+decision: {min_effect: 0.0002, alpha: 0.05, correction: none}
+seed: 20261010
+report: {format: [markdown]}

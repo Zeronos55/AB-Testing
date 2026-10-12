@@ -6,7 +6,7 @@
 
 ## Status
 
-**Phases 0-3 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps). Try it:
+**Phases 0-4 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval). Try it:
 
 ```bash
 uv sync
@@ -43,6 +43,24 @@ turns rolling-origin forecasts into those losses (MAE / MASE / RMSSE per origin 
 `methods/superior_predictive.py` wraps `arch` for many models against a benchmark (the `[forecast]`
 extra). Known limit: DM + HLN is well calibrated at h = 1 and 3 but still mildly liberal at long
 horizons with few origins (about 6-7% at h = 7-10, T = 100); the naive t-test is far worse.
+
+Phase 4 (trading, "edge or luck?"):
+
+```bash
+uv run python case_studies/04_trading_edge/run.py                        # 272 MA rules: naive t vs DSR vs PBO
+uv run python validation/failure_gallery/02_iid_bootstrap_sharpe.py      # iid bootstrap Sharpe CI undercovers
+uv run pytest -m slow                                                    # + Sharpe-interval coverage
+```
+
+`adapters/strategy_returns.py` turns per-period returns into the canonical table and provides the
+append-only `TrialRegistry` (every evaluated variant logged by a decorator or context manager).
+`methods/finance.py` has the Probabilistic and Deflated Sharpe Ratio and MinTRL, a block-bootstrap
+Sharpe interval, and SPA/StepM against buy-and-hold; the DSR refuses to run unless the number of
+trials comes from a registry or is given explicitly. `methods/pbo.py` is the vectorised
+combinatorially symmetric CV estimate of the Probability of Backtest Overfitting (12,870 splits
+at 16 blocks in about a second). Known limits: the block-bootstrap Sharpe interval stays about
+2-4 points short of nominal coverage at T = 500, and DSR treats the registry's trials as
+independent although neighbouring variants are near-duplicates.
 
 An A/B config (`adapter: ab_table`, or a `metrics:` list) gets an automatic sample-ratio check,
 multiplicity across success metrics only, one-sided non-inferiority guardrails and a ship /

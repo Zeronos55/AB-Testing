@@ -12,6 +12,7 @@ jobs:
       - run: uv sync
       - run: uv run pytest -m slow
       - run: uv run python validation/failure_gallery/01_naive_cv_ttest.py
+      - run: uv run python validation/failure_gallery/02_iid_bootstrap_sharpe.py
       - run: uv run python validation/failure_gallery/02b_dm_horizon.py
       - run: uv run python validation/failure_gallery/05_ignored_clustering.py
       - uses: actions/upload-artifact@v4

@@ -216,3 +216,59 @@ def cluster_type1(
         CalibrationResult(rej[0] / reps, reps, alpha, band),
         CalibrationResult(rej[1] / reps, reps, alpha, band),
     )
+
+
+def dm_pvalues(la: np.ndarray, lb: np.ndarray, horizon: int, hln: bool = True) -> np.ndarray:
+    """Row-wise Diebold-Mariano p-values for (reps, T) loss matrices.
+
+    Mirrors :func:`isbetter.methods.forecasting.diebold_mariano` (rectangular variance with
+    ``horizon - 1`` lags, divided by T; HLN factor and t(T - 1) when ``hln``). A replication
+    whose long-run variance estimate is not positive cannot be tested and counts as no rejection.
+    """
+    d = la - lb
+    T = d.shape[1]
+    c = d - d.mean(1, keepdims=True)
+    lrv = sum(
+        (1.0 if k == 0 else 2.0) * (c[:, k:] * c[:, : T - k]).sum(1) / T for k in range(horizon)
+    )
+    ok = lrv > 0
+    with np.errstate(invalid="ignore", divide="ignore"):
+        dm = d.mean(1) / np.sqrt(lrv / T)
+    if hln:
+        factor = np.sqrt((T + 1 - 2 * horizon + horizon * (horizon - 1) / T) / T)
+        p = 2 * stats.t.sf(np.abs(factor * dm), T - 1)
+    else:
+        p = 2 * stats.norm.sf(np.abs(dm))
+    return np.asarray(np.where(ok, p, 1.0))
+
+
+def naive_dm_pvalues(la: np.ndarray, lb: np.ndarray) -> np.ndarray:
+    """Row-wise p-values of the NAIVE paired t-test on the loss differential."""
+    return paired_pvalues(la, lb)
+
+
+def dm_type1(
+    rng: np.random.Generator,
+    reps: int,
+    T: int = 100,
+    horizon: int = 3,
+    alpha: float = 0.05,
+    rho: float = 0.5,
+    chunk: int = 2_000,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Type I error of (naive paired t, Diebold-Mariano + HLN) for equally good forecasters."""
+    from isbetter.simulate.dgp import dm_null_losses
+
+    rej = [0, 0]
+    done = 0
+    while done < reps:
+        m = min(chunk, reps - done)
+        la, lb = dm_null_losses(rng, m, T, horizon, rho)
+        rej[0] += int((naive_dm_pvalues(la, lb) < alpha).sum())
+        rej[1] += int((dm_pvalues(la, lb, horizon) < alpha).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    return (
+        CalibrationResult(rej[0] / reps, reps, alpha, band),
+        CalibrationResult(rej[1] / reps, reps, alpha, band),
+    )

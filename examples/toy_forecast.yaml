@@ -1,0 +1,10 @@
+# Two 3-step-ahead forecasters on a daily series, scored on 118 rolling forecast origins.
+# Synthetic data. Run:  isbetter run examples/toy_forecast.yaml
+experiment: toy_forecast
+adapter: csv_long
+data: toy_forecast.csv
+variants: {baseline: seasonal_naive, candidates: [level_season]}
+metric: {name: mae_h3, higher_is_better: false}   # loss: lower is better
+dependence: {type: timeseries, horizon: 3}        # 3-step errors overlap -> DM uses 2 lags
+decision: {min_effect: 0.1, alpha: 0.05}
+seed: 20261010

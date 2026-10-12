@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from isbetter.core.dependence import Clustered, CVOverlap, Iid, Paired
+from isbetter.core.dependence import Clustered, CVOverlap, Iid, Paired, TimeSeries
 from isbetter.core.plan import AnalysisPlan
 from isbetter.core.result import ComparisonResult, MethodResult, Result
 from isbetter.core.schema import CanonicalTable, SchemaError
@@ -15,10 +15,11 @@ from isbetter.core.sufficient import AggregatedTable, SufficientStats
 from isbetter.decision.verdict import CVSpec, decide
 from isbetter.methods.cluster import cluster_bootstrap, cluster_robust_diff
 from isbetter.methods.cv import nadeau_bengio
+from isbetter.methods.forecasting import diebold_mariano, suggest_block_length
 from isbetter.methods.multiplicity import adjust
 from isbetter.methods.parametric import paired_t, welch_t_stats
 from isbetter.methods.proportions import fisher_exact_stats, two_proportion_z_stats
-from isbetter.methods.resampling import paired_bootstrap, sign_flip_permutation
+from isbetter.methods.resampling import block_bootstrap, paired_bootstrap, sign_flip_permutation
 from isbetter.methods.variance_reduction import (
     cuped,
     delta_method_ratio,
@@ -146,6 +147,61 @@ def _analyse_iid(
     return _Outcome(primary, cross, sa.n + sb.n)
 
 
+def _loss_series(
+    table: CanonicalTable, variant: str, metric: str, horizon: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Per-origin losses of one variant, in time order, plus their time stamps."""
+    r = _rows(table, variant, metric)
+    if "time" not in r:
+        raise SchemaError("dependence=timeseries requires a 'time' column")
+    if "horizon" in r and not (r["horizon"].astype(float) == horizon).all():
+        found = sorted({int(h) for h in r["horizon"].astype(float)})
+        raise SchemaError(
+            f"metric '{metric}' holds losses at horizon(s) {found} but the plan declares "
+            f"horizon={horizon}; the Diebold-Mariano variance depends on the horizon"
+        )
+    order = np.argsort(r["time"], kind="stable")
+    return r["value"][order], r["time"][order]
+
+
+def _analyse_timeseries(
+    plan: AnalysisPlan,
+    table: CanonicalTable,
+    cand: str,
+    dep: TimeSeries,
+    alpha: float,
+    rng: np.random.Generator,
+    with_cross: bool,
+) -> _Outcome:
+    la, ta = _loss_series(table, cand, plan.metric, dep.horizon)
+    lb, tb = _loss_series(table, plan.baseline, plan.metric, dep.horizon)
+    if not np.array_equal(ta, tb):
+        raise SchemaError(
+            f"variants '{cand}' and '{plan.baseline}' were not scored on the same forecast "
+            f"origins for metric '{plan.metric}'"
+        )
+    res = diebold_mariano(la, lb, dep.horizon, alpha, hln=True, hac_lags=dep.hac_lags)
+    cross: list[MethodResult] = []
+    if with_cross:
+        d = la - lb
+        suggestion = suggest_block_length(d)
+        user = dep.block_len is not None
+        length = (
+            dep.block_len if dep.block_len is not None else suggestion.integer("stationary", len(d))
+        )
+        boot = block_bootstrap(la, lb, rng, length, "stationary", alpha=alpha)
+        boot.diagnostics.update(
+            block_len_source="user" if user else suggestion.source,
+            suggested_block_len={
+                "stationary": suggestion.stationary,
+                "circular": suggestion.circular,
+                "source": suggestion.source,
+            },
+        )
+        cross.append(boot)
+    return _Outcome(res, cross, len(la))
+
+
 def _analyse(
     plan: AnalysisPlan,
     table: Data,
@@ -186,6 +242,8 @@ def _analyse(
         args = (ra["value"], ra[dep.cluster_col], rb["value"], rb[dep.cluster_col])
         cross = [cluster_bootstrap(*args, rng, alpha=alpha)] if with_cross else []
         return _Outcome(cluster_robust_diff(*args, alpha=alpha), cross, len(args[0]) + len(args[2]))
+    if isinstance(dep, TimeSeries):
+        return _analyse_timeseries(plan, table, cand, dep, alpha, rng, with_cross)
     raise ValueError(f"unsupported dependence {dep.kind!r}")  # pragma: no cover
 
 

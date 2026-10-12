@@ -1,7 +1,7 @@
 import pytest
 
 from isbetter.core.config import parse_config
-from isbetter.core.plan import AnalysisPlan, UnsupportedPlan, build_plan
+from isbetter.core.plan import AnalysisPlan, UnsupportedPlan, build_plan, route
 
 
 def cfg(dep):
@@ -27,13 +27,38 @@ def test_iid_routes_to_welch():
     assert build_plan(cfg({"type": "iid"})).primary == "welch_t"
 
 
-@pytest.mark.parametrize(
-    "dep",
-    [{"type": "timeseries"}],
-)
-def test_unsupported_never_falls_back(dep):
+def test_unknown_dependence_never_falls_back():
+    class Weird:
+        kind = "weird"
+
     with pytest.raises(UnsupportedPlan, match="not implemented"):
-        build_plan(cfg(dep))
+        route(Weird())  # type: ignore[arg-type]
+
+
+def test_timeseries_routes_to_dm_with_block_bootstrap_cross_check():
+    plan = build_plan(cfg({"type": "timeseries", "horizon": 3}))
+    assert plan.primary == "diebold_mariano_hln"
+    assert plan.cross_checks == ["stationary_block_bootstrap"]
+    assert "horizon': 3" in plan.pretty()
+
+
+@pytest.mark.parametrize("kind", ["binary", "ratio"])
+def test_timeseries_rejects_non_loss_metric_kinds(kind):
+    c = parse_config(
+        {
+            "experiment": "x",
+            "data": "d.csv",
+            "variants": {"baseline": "a", "candidates": ["b"]},
+            "metric": {
+                "name": "m",
+                "kind": kind,
+                **({"denominator": "n"} if kind == "ratio" else {}),
+            },
+            "dependence": {"type": "timeseries"},
+        }
+    )
+    with pytest.raises(UnsupportedPlan, match="not routable|neither ratio"):
+        build_plan(c)
 
 
 def test_plan_dict_roundtrip():

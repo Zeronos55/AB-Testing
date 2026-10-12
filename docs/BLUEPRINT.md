@@ -1,7 +1,7 @@
 # Blueprint: `isbetter`, a dependence-aware "Is A really better than B?" toolkit
 
 > Audience: junior engineers and interns joining the build. Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
-> Status: **Phases 0–2 built** (see README for current commands). Later phases are still planned; build them in the order given in section 12.
+> Status: **Phases 0–3 built** (see README for current commands). Later phases are still planned; build them in the order given in section 12.
 
 ---
 
@@ -183,7 +183,7 @@ ab-testing/
 ├── src/isbetter/
 │   ├── core/       schema.py  dependence.py  plan.py  result.py  config.py
 │   ├── methods/    parametric.py  proportions.py  classification.py  resampling.py
-│   │               cluster.py  cv.py  forecasting.py  finance.py
+│   │               cluster.py  cv.py  forecasting.py  superior_predictive.py  finance.py
 │   │               variance_reduction.py  multiplicity.py  power.py  sequential.py
 │   ├── decision/   verdict.py  guardrails.py
 │   ├── adapters/   sklearn_cv.py  ab_table.py  forecast_backtest.py  strategy_returns.py  llm_eval.py
@@ -330,7 +330,7 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 | # | Ticket | DoD |
 |---|---|---|
 | 3.1 | `adapters/forecast_backtest.py`: per-origin, per-horizon losses (MAE, MASE, RMSSE) | Schema passes; `time` is monotone. |
-| 3.2 | `methods/forecasting.py`: DM + HLN | Oracle against statsmodels (if the installed version has `diebold_mariano_test`) **and** stored R `forecast::dm.test` fixtures at h = 1, 3 and 7. |
+| 3.2 | `methods/forecasting.py`: DM + HLN | Oracle against statsmodels (if the installed version has `diebold_mariano_test`) **and** stored R `forecast::dm.test` fixtures at h = 1, 3 and 7. *Built:* statsmodels 0.15 has no DM test, so the oracles are statsmodels' HAC covariance (uniform and Bartlett kernels) and a transcription of `dm.test`; the R fixture test is in place but skips until `tests/oracle/fixtures/make_dm_fixtures.R` has been run where R is available. |
 | 3.3 | Wrap `arch` SPA / StepM / MCS behind our `MethodResult` | Wrapper tests on the documented `arch` example. |
 | 3.4 | Block-length suggestion diagnostic (Politis–White, via `arch.bootstrap.optimal_block_length`) | Appears in the report diagnostics. |
 | 3.5 | Failure-gallery #2b: a DM test with h > 1 that ignores autocorrelation over-rejects | Figure produced. |

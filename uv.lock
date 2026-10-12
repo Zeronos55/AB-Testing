@@ -1042,6 +1042,7 @@ ml = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "arch" },
     { name = "duckdb" },
     { name = "hypothesis" },
     { name = "lightgbm" },
@@ -1082,6 +1083,7 @@ provides-extras = ["ab", "ml", "forecast", "finance", "bayes", "app", "docs"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "arch" },
     { name = "duckdb" },
     { name = "hypothesis", specifier = ">=6" },
     { name = "lightgbm" },

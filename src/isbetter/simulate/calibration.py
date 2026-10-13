@@ -320,15 +320,25 @@ def clt_proportion_interval(x: int, n: int, alpha: float = 0.05) -> tuple[float,
     return clt_interval(np.r_[np.ones(x), np.zeros(n - x)], alpha)
 
 
-def exact_proportion_coverage(interval: Interval, n: int, p: float, alpha: float = 0.05) -> float:
-    """Coverage of ``interval(x, n, alpha)`` at true accuracy ``p``, with no simulation.
+def exact_proportion_coverage_curve(
+    interval: Interval, n: int, ps: np.ndarray, alpha: float = 0.05
+) -> np.ndarray:
+    """Coverage of ``interval(x, n, alpha)`` at every true accuracy in ``ps``, with no simulation.
 
     A proportion's interval depends on the data only through ``x ~ Binomial(n, p)``, so the
-    coverage is ``sum_x P(x) * 1[p in interval(x)]`` over the n + 1 possible counts.
+    coverage is ``sum_x P(x) * 1[p in interval(x)]`` over the n + 1 possible counts. The
+    intervals are computed once per count and reused for every ``p``.
     """
     xs = np.arange(n + 1)
-    covered = np.array([lo <= p <= hi for lo, hi in (interval(int(x), n, alpha) for x in xs)])
-    return float(stats.binom.pmf(xs, n, p)[covered].sum())
+    lo, hi = np.array([interval(int(x), n, alpha) for x in xs]).T
+    ps = np.asarray(ps, dtype=np.float64)
+    covered = (lo[:, None] <= ps[None, :]) & (ps[None, :] <= hi[:, None])
+    return np.asarray((stats.binom.pmf(xs[:, None], n, ps[None, :]) * covered).sum(0))
+
+
+def exact_proportion_coverage(interval: Interval, n: int, p: float, alpha: float = 0.05) -> float:
+    """Coverage of ``interval`` at one true accuracy ``p`` (see the ``_curve`` version)."""
+    return float(exact_proportion_coverage_curve(interval, n, np.array([p]), alpha)[0])
 
 
 def paired_binary_coverage(

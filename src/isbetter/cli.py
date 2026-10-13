@@ -6,8 +6,7 @@ from pathlib import Path
 
 import typer
 
-from isbetter.adapters.csv_long import read_csv
-from isbetter.adapters.load import load_data, resolve_data_path
+from isbetter.adapters.load import load_data
 from isbetter.core.config import Config, ConfigError, load_config
 from isbetter.core.experiment import build_experiment_plan, run_experiment
 from isbetter.core.plan import UnsupportedPlan, build_plan
@@ -67,7 +66,7 @@ def run(
             return
         plan = build_plan(cfg)
         typer.echo(plan.pretty())  # print the plan before running
-        table = read_csv(resolve_data_path(cfg, config.parent), plan.dependence)
+        table = load_data(cfg, [plan], config.parent)
         result = run_plan(plan, table)
     except (ConfigError, SchemaError, UnsupportedPlan, ValueError) as exc:
         typer.echo(f"error: {exc}", err=True)

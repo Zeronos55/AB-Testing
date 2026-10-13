@@ -6,6 +6,7 @@ from pathlib import Path
 
 from isbetter.adapters.ab_table import AggSpec, aggregate_ab_table, read_ab_table
 from isbetter.adapters.csv_long import read_csv
+from isbetter.adapters.llm_eval import read_item_scores
 from isbetter.core.config import Config
 from isbetter.core.dependence import Clustered
 from isbetter.core.plan import AnalysisPlan
@@ -24,6 +25,8 @@ def load_data(
     """Read ``cfg.data`` through the configured adapter (relative paths resolve to base_dir)."""
     path = resolve_data_path(cfg, base_dir)
     dep = plans[0].dependence
+    if cfg.adapter == "llm_eval":
+        return read_item_scores(path, dep, metric=plans[0].metric)
     if cfg.adapter != "ab_table":
         return read_csv(path, dep)
 

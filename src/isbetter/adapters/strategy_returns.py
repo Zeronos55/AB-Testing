@@ -77,6 +77,26 @@ class TrialRecord:
         return _trial_key(self.name, self.params)
 
 
+def _canonical(value: Any) -> Any:
+    """JSON-safe form of a trial parameter that keeps different values different.
+
+    ``repr`` of a large numpy array is abbreviated with ``...``, so two arrays that differ only
+    in the elided middle would share a key and count as one trial. Arrays are therefore stored
+    as their shape, dtype and a SHA-256 of their bytes; numpy scalars become Python scalars.
+    """
+    if isinstance(value, np.ndarray):
+        digest = hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
+        meta = {"shape": list(value.shape), "dtype": str(value.dtype), "sha256": digest}
+        return {"ndarray": meta}
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, Mapping):
+        return {str(k): _canonical(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_canonical(v) for v in value]
+    return value
+
+
 def _trial_key(name: str, params: Mapping[str, Any]) -> str:
     return name + json.dumps(params, sort_keys=True, default=repr)
 
@@ -88,7 +108,7 @@ def _describe(name: str, params: Mapping[str, Any], returns: np.ndarray) -> Tria
         raise ValueError(f"trial {name!r}: {exc}") from exc
     return TrialRecord(
         name=name,
-        params=dict(params),
+        params={str(k): _canonical(v) for k, v in params.items()},
         n_obs=m.n,
         mean=m.mean,
         std=m.std,

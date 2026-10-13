@@ -209,3 +209,26 @@ def test_read_returns_csv(tmp_path):
     (tmp_path / "nodate.csv").write_text("a\n0.1\n")
     with pytest.raises(SchemaError, match="no 'date'"):
         read_returns_csv(tmp_path / "nodate.csv")
+
+
+def test_different_array_parameters_are_different_trials(tmp_path):
+    """repr of a long array is abbreviated, so arrays differing in the middle must not collide."""
+    reg = TrialRegistry(tmp_path / "t.jsonl")
+    a, b = np.zeros(5000), np.zeros(5000)
+    b[2500] = 1.0
+    assert repr(a) == repr(b)  # the trap: identical abbreviated text
+    reg.log("v", _r(1), {"weights": a})
+    reg.log("v", _r(2), {"weights": b})
+    assert reg.n_trials() == 2
+    reg.log("v", _r(3), {"weights": a.copy()})  # same values again: still two variants
+    assert reg.n_trials() == 2
+    assert TrialRegistry(tmp_path / "t.jsonl").n_trials() == 2  # survives a reload from disk
+
+
+def test_array_and_numpy_scalar_parameters_are_stored_compactly(tmp_path):
+    reg = TrialRegistry(tmp_path / "t.jsonl")
+    reg.log("v", _r(1), {"w": np.arange(10_000.0), "k": np.int64(7), "pair": (1, np.float64(0.5))})
+    (rec,) = reg.records()
+    assert rec.params["k"] == 7 and rec.params["pair"] == [1, 0.5]
+    assert rec.params["w"]["ndarray"]["shape"] == [10_000]
+    assert (tmp_path / "t.jsonl").stat().st_size < 2_000

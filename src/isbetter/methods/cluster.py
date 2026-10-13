@@ -129,3 +129,122 @@ def cluster_bootstrap(
         rationale=f"Percentile bootstrap resampling whole clusters ({G} clusters).",
         diagnostics={"se": float(ok.std(ddof=1)), "n_resamples": n_resamples},
     )
+
+
+def _paired_prep(
+    a: np.ndarray, b: np.ndarray, clusters: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Per-item differences ``a - b`` and integer cluster codes (items already aligned)."""
+    a_, b_ = np.asarray(a, dtype=np.float64), np.asarray(b, dtype=np.float64)
+    if a_.ndim != 1 or a_.shape != b_.shape or len(clusters) != len(a_):
+        raise ValueError(
+            "a, b and clusters must be 1-D arrays of equal length (one entry per item)"
+        )
+    d = a_ - b_
+    if len(d) < 2:
+        raise ValueError("need at least 2 items")
+    if not np.isfinite(d).all():
+        raise ValueError("scores contain NaN or infinite values")
+    labels, codes = np.unique(np.asarray(clusters).astype(str), return_inverse=True)
+    if len(labels) < 2:
+        raise ValueError("need at least 2 clusters")
+    return d, codes.ravel()
+
+
+def paired_cluster_robust(
+    scores_a: np.ndarray, scores_b: np.ndarray, clusters: np.ndarray, alpha: float = 0.05
+) -> MethodResult:
+    """Paired difference in means with a cluster-robust standard error (Miller 2024, sec. 3-4).
+
+    Both models are scored on the same items, so the quantity of interest is the mean of the
+    per-item differences ``d_i = a_i - b_i`` (pairing removes the item-difficulty variance),
+    and items that share a cluster (passage, task, source) are correlated, so the standard
+    error comes from cluster totals:
+
+    ``SE^2 = G/(G-1) * sum_c (sum_{i in c} (d_i - dbar))^2 / n^2``
+
+    which is the plain paired SE ``var(d)/n`` plus the within-cluster cross-products
+    ``(1/n^2) sum_c sum_i sum_{j != i} e_i e_j`` (Miller's ``SE_clustered``), times the CR1
+    factor ``G/(G-1)``. Inference uses t(G - 1). With every item its own cluster this is
+    exactly the paired t-test. ``estimate`` is ``mean(a) - mean(b)``.
+
+    Few clusters (roughly under 20-30) leave the interval liberal; the diagnostics report G.
+    """
+    d, codes = _paired_prep(scores_a, scores_b, clusters)
+    n, G = len(d), int(codes.max()) + 1
+    dbar = float(d.mean())
+    totals = np.bincount(codes, weights=d - dbar, minlength=G)
+    se = float(np.sqrt(G / (G - 1) * (totals**2).sum()) / n)
+    se_iid = float(d.std(ddof=1) / np.sqrt(n))
+    if se == 0:
+        raise ValueError("zero cluster-robust variance: t statistic undefined")
+    df = float(G - 1)
+    t = dbar / se
+    crit = float(stats.t.ppf(1 - alpha / 2, df))
+    return MethodResult(
+        method="paired_cluster_robust",
+        estimate=dbar,
+        ci_low=dbar - crit * se,
+        ci_high=dbar + crit * se,
+        ci_level=1 - alpha,
+        p_value=float(2 * stats.t.sf(abs(t), df)),
+        statistic=float(t),
+        df=df,
+        n_effective=float(G),
+        rationale=(
+            f"Paired difference over {n} items with a cluster-robust (CR1) standard error "
+            f"({G} clusters, t({G - 1}) inference): both models answer the same items, so the "
+            "per-item differences are analysed, and items in a cluster are correlated, so the "
+            "error bar counts clusters rather than items."
+        ),
+        diagnostics={
+            "se": se,
+            "se_iid": se_iid,
+            "design_effect": (se / se_iid) ** 2 if se_iid > 0 else float("nan"),
+            "n_clusters": G,
+            "n_items": n,
+        },
+    )
+
+
+def paired_cluster_bootstrap(
+    scores_a: np.ndarray,
+    scores_b: np.ndarray,
+    clusters: np.ndarray,
+    rng: np.random.Generator,
+    n_resamples: int = 9_999,
+    alpha: float = 0.05,
+    batch: int = 200,
+) -> MethodResult:
+    """Percentile bootstrap of the paired difference that resamples whole clusters.
+
+    Memory is O(batch * G): the differences are reduced to per-cluster totals first.
+    """
+    d, codes = _paired_prep(scores_a, scores_b, clusters)
+    G = int(codes.max()) + 1
+    sums = np.bincount(codes, weights=d, minlength=G)
+    counts = np.bincount(codes, minlength=G).astype(np.float64)
+    est = float(d.mean())
+    out = np.empty(n_resamples)
+    step = max(1, min(batch, 2_000_000 // G))
+    for start in range(0, n_resamples, step):
+        stop = min(start + step, n_resamples)
+        idx = rng.integers(0, G, size=(stop - start, G))
+        out[start:stop] = sums[idx].sum(1) / counts[idx].sum(1)
+    lo, hi = np.quantile(out, [alpha / 2, 1 - alpha / 2])
+    return MethodResult(
+        method="paired_cluster_bootstrap",
+        estimate=est,
+        ci_low=float(lo),
+        ci_high=float(hi),
+        ci_level=1 - alpha,
+        p_value=None,
+        statistic=None,
+        df=None,
+        n_effective=float(G),
+        rationale=(
+            f"Percentile bootstrap of the paired difference resampling whole clusters ({G} "
+            "clusters); a cross-check of the cluster-robust interval."
+        ),
+        diagnostics={"se": float(out.std(ddof=1)), "n_resamples": n_resamples},
+    )

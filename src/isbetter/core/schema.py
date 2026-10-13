@@ -88,6 +88,9 @@ def validate(table: CanonicalTable, dependence: Dependence | None = None) -> Non
         _check_pairing(cols, variant, metric)
     elif isinstance(dependence, Clustered):
         _check_clusters(cols, dependence, variant, metric)
+        if dependence.paired:
+            _check_pairing(cols, variant, metric)
+            _check_pair_clusters(cols, dependence, variant, metric)
     elif isinstance(dependence, TimeSeries):
         _check_time(cols, variant, metric)
 
@@ -121,6 +124,20 @@ def _check_clusters(
         n = len(set(cl[variant == v]))
         if n < 2:
             raise SchemaError(f"variant '{v}' has {n} cluster(s); need at least 2")
+
+
+def _check_pair_clusters(
+    cols: dict[str, np.ndarray], dep: Clustered, variant: np.ndarray, metric: np.ndarray
+) -> None:
+    """A paired item must sit in the same cluster for every variant."""
+    pair, cl = cols["pair_id"].astype(str), cols[dep.cluster_col].astype(str)
+    seen: dict[tuple[str, str], str] = {}
+    for m, p, c in zip(metric, pair, cl, strict=True):
+        if seen.setdefault((str(m), p), c) != c:
+            raise SchemaError(
+                f"paired item pair_id={p!r} (metric '{m}') is in more than one cluster "
+                f"('{seen[(str(m), p)]}' and '{c}')"
+            )
 
 
 def _check_time(cols: dict[str, np.ndarray], variant: np.ndarray, metric: np.ndarray) -> None:

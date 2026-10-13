@@ -169,3 +169,34 @@ def ar1_garch_returns(
         if t >= 0:
             out[:, t] = x
     return out + sharpe * vol
+
+
+def paired_binary_cells(
+    rng: np.random.Generator, reps: int, n: int, p_a: float, p_b: float, rho: float = 0.4
+) -> tuple[np.ndarray, np.ndarray]:
+    """Counts ``(b, c)`` of discordant items for two models scored right/wrong on ``n`` items.
+
+    ``b`` = only A right, ``c`` = only B right. Each item is a draw from the 2x2 cell
+    probabilities with marginal accuracies ``p_a`` and ``p_b`` and a phi correlation ``rho``
+    between the two models' correctness (models fail on the same hard items). The true accuracy
+    difference is ``p_a - p_b``. Raises if ``rho`` is infeasible for the marginals.
+    """
+    p11 = p_a * p_b + rho * np.sqrt(p_a * (1 - p_a) * p_b * (1 - p_b))
+    cells = np.array([p11, p_a - p11, p_b - p11, 1 - p_a - p_b + p11])
+    if (cells < -1e-12).any():
+        raise ValueError(f"rho={rho} is infeasible for accuracies p_a={p_a}, p_b={p_b}")
+    counts = rng.multinomial(n, np.clip(cells, 0, None) / np.clip(cells, 0, None).sum(), size=reps)
+    return counts[:, 1], counts[:, 2]
+
+
+def aa_paired_clustered(
+    rng: np.random.Generator, reps: int, groups: int, per_group: int, icc: float = 0.5
+) -> np.ndarray:
+    """Per-item score differences of two equally good models, items grouped in clusters.
+
+    Shape (reps, groups, per_group). The difference has mean zero, and items in a group share a
+    component (intra-class correlation ``icc``), as when questions on one passage are all easier
+    for one model. Any rejection of "no difference" is a false positive.
+    """
+    shared = rng.normal(0.0, np.sqrt(icc), (reps, groups, 1))
+    return shared + rng.normal(0.0, np.sqrt(1 - icc), (reps, groups, per_group))

@@ -308,3 +308,99 @@ def sharpe_ci_coverage(
         CalibrationResult(hits[0] / reps, reps, 1 - alpha, band),
         CalibrationResult(hits[1] / reps, reps, 1 - alpha, band),
     )
+
+
+Interval = Callable[[int, int, float], tuple[float, float]]
+
+
+def clt_proportion_interval(x: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
+    """The normal-theory interval for an accuracy: ``clt_interval`` on x ones and n - x zeros."""
+    from isbetter.methods.small_n import clt_interval
+
+    return clt_interval(np.r_[np.ones(x), np.zeros(n - x)], alpha)
+
+
+def exact_proportion_coverage(interval: Interval, n: int, p: float, alpha: float = 0.05) -> float:
+    """Coverage of ``interval(x, n, alpha)`` at true accuracy ``p``, with no simulation.
+
+    A proportion's interval depends on the data only through ``x ~ Binomial(n, p)``, so the
+    coverage is ``sum_x P(x) * 1[p in interval(x)]`` over the n + 1 possible counts.
+    """
+    xs = np.arange(n + 1)
+    covered = np.array([lo <= p <= hi for lo, hi in (interval(int(x), n, alpha) for x in xs)])
+    return float(stats.binom.pmf(xs, n, p)[covered].sum())
+
+
+def paired_binary_coverage(
+    rng: np.random.Generator,
+    reps: int,
+    n: int = 50,
+    p_a: float = 0.8,
+    p_b: float = 0.75,
+    rho: float = 0.4,
+    alpha: float = 0.05,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Coverage of (normal-theory paired interval, Tango score interval) for ``p_a - p_b``.
+
+    Items are right/wrong for two models with correlation ``rho``. Tables repeat, so each
+    distinct ``(b, c)`` interval is computed once.
+    """
+    from isbetter.methods.small_n import paired_score_interval
+    from isbetter.simulate.dgp import paired_binary_cells
+
+    b, c = paired_binary_cells(rng, reps, n, p_a, p_b, rho)
+    truth = p_a - p_b
+    z = float(stats.norm.ppf(1 - alpha / 2))
+    cache: dict[tuple[int, int], tuple[float, float]] = {}
+    hits = [0, 0]
+    for bi, ci in zip(b.tolist(), c.tolist(), strict=True):
+        if (bi, ci) not in cache:
+            cache[(bi, ci)] = paired_score_interval(bi, ci, n, alpha)
+        lo, hi = cache[(bi, ci)]
+        hits[1] += int(lo <= truth <= hi)
+        var_d = max(bi + ci - (bi - ci) ** 2 / n, 0.0) / (n - 1)  # sample variance of d_i
+        half = z * np.sqrt(var_d / n)
+        hits[0] += int((bi - ci) / n - half <= truth <= (bi - ci) / n + half)
+    band = mc_band(1 - alpha, reps)
+    return (
+        CalibrationResult(hits[0] / reps, reps, 1 - alpha, band),
+        CalibrationResult(hits[1] / reps, reps, 1 - alpha, band),
+    )
+
+
+def paired_cluster_type1(
+    rng: np.random.Generator,
+    reps: int,
+    groups: int = 30,
+    per_group: int = 5,
+    icc: float = 0.5,
+    alpha: float = 0.05,
+    chunk: int = 2_000,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Type I error of (paired t ignoring clusters, paired cluster-robust CR1) for equal models.
+
+    Follows :func:`isbetter.methods.cluster.paired_cluster_robust`: totals of centred
+    differences per cluster, ``G/(G - 1)`` factor, t(G - 1) inference (checked against it in the
+    tests).
+    """
+    from isbetter.simulate.dgp import aa_paired_clustered
+
+    rej = [0, 0]
+    done = 0
+    n = groups * per_group
+    while done < reps:
+        m = min(chunk, reps - done)
+        d = aa_paired_clustered(rng, m, groups, per_group, icc)
+        flat = d.reshape(m, -1)
+        mean = flat.mean(1)
+        t_naive = mean / (flat.std(1, ddof=1) / np.sqrt(n))
+        totals = (d - mean[:, None, None]).sum(2)
+        se = np.sqrt(groups / (groups - 1) * (totals**2).sum(1)) / n
+        rej[0] += int((2 * stats.t.sf(np.abs(t_naive), n - 1) < alpha).sum())
+        rej[1] += int((2 * stats.t.sf(np.abs(mean / se), groups - 1) < alpha).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    return (
+        CalibrationResult(rej[0] / reps, reps, alpha, band),
+        CalibrationResult(rej[1] / reps, reps, alpha, band),
+    )

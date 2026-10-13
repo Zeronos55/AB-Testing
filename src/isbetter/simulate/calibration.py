@@ -414,3 +414,77 @@ def paired_cluster_type1(
         CalibrationResult(rej[0] / reps, reps, alpha, band),
         CalibrationResult(rej[1] / reps, reps, alpha, band),
     )
+
+
+@dataclass
+class PeekingResult:
+    """False-positive rates of one A/A test monitored at a set of looks."""
+
+    n_looks: int
+    n_max: int
+    alpha: float
+    reps: int
+    single_look: CalibrationResult  # fixed-horizon test, looked at once at n_max (the valid use)
+    peeked: CalibrationResult  # same test, stopped at the first look with p < alpha
+    sequence: CalibrationResult  # normal-mixture confidence sequence, plug-in variance
+    sequence_known: CalibrationResult  # same with the variance known (exact guarantee)
+
+
+def look_schedule(n_max: int, n_looks: int | None, min_n: int) -> np.ndarray:
+    """Sample sizes per arm at which an experiment is read: all of ``min_n..n_max`` or evenly
+    spaced ``n_looks`` of them (the last one is always ``n_max``)."""
+    if n_looks is None:
+        return np.arange(min_n, n_max + 1)
+    if n_looks < 1 or n_looks > n_max - min_n + 1:
+        raise ValueError("n_looks must be between 1 and n_max - min_n + 1")
+    return np.unique(np.linspace(min_n, n_max, n_looks).round().astype(int))
+
+
+def peeking_type1(
+    rng: np.random.Generator,
+    reps: int,
+    n_max: int = 2_000,
+    n_looks: int | None = None,
+    alpha: float = 0.05,
+    n_target: int | None = None,
+    min_n: int = 20,
+    chunk: int = 250,
+) -> PeekingResult:
+    """How often an A/A test (two N(0, 1) arms) declares a difference when it is monitored.
+
+    The fixed-horizon Welch test is valid if looked at once at ``n_max``; stopping at the first
+    look with ``p < alpha`` (``peeked``) is what happens when a dashboard is checked daily, and
+    its false-positive rate grows with the number of looks. The confidence sequences, tuned for
+    ``n_target`` (default ``n_max``) in advance, may be read at every look. Setting
+    ``n_looks=None`` reads every sample size from ``min_n`` to ``n_max``.
+    """
+    from isbetter.methods.sequential import mixture_boundary, optimal_rho
+
+    looks = look_schedule(n_max, n_looks, min_n)
+    t = looks.astype(np.float64)
+    rho = optimal_rho(float(n_target or n_max), alpha)
+    boundary = mixture_boundary(t, rho, alpha)
+    crit = stats.t.ppf(
+        1 - alpha / 2, 2 * (looks - 1)
+    )  # fixed-horizon Welch (equal n) critical value
+    hits = np.zeros(4)
+    done = 0
+    while done < reps:
+        m = min(chunk, reps - done)
+        a, b = rng.normal(size=(m, n_max)), rng.normal(size=(m, n_max))
+        ma, mb = np.cumsum(a, 1)[:, looks - 1] / t, np.cumsum(b, 1)[:, looks - 1] / t
+        den = np.maximum(t - 1, 1)
+        va = np.maximum(np.cumsum(a**2, 1)[:, looks - 1] - t * ma**2, 0.0) / den
+        vb = np.maximum(np.cumsum(b**2, 1)[:, looks - 1] - t * mb**2, 0.0) / den
+        diff = np.abs(ma - mb)
+        s = np.sqrt(va + vb)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            tstat = diff / (s / np.sqrt(t))
+        hits[0] += int((tstat[:, -1] > crit[-1]).sum())
+        hits[1] += int((tstat > crit).any(1).sum())
+        hits[2] += int(((diff > s * boundary / t) & (s > 0)).any(1).sum())
+        hits[3] += int((diff > np.sqrt(2.0) * boundary / t).any(1).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    r = [CalibrationResult(float(h) / reps, reps, alpha, band) for h in hits]
+    return PeekingResult(len(looks), n_max, alpha, reps, r[0], r[1], r[2], r[3])

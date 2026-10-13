@@ -86,6 +86,7 @@ def test_look_schedule():
     assert list(look_schedule(10, None, 4)) == [4, 5, 6, 7, 8, 9, 10]
     sched = look_schedule(100, 5, 20)
     assert sched[0] == 20 and sched[-1] == 100 and len(sched) == 5
+    assert list(look_schedule(2000, 1, 20)) == [2000]  # one look = the planned end, not the start
     with pytest.raises(ValueError):
         look_schedule(30, 50, 20)
 

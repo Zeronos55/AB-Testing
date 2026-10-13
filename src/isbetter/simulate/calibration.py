@@ -437,6 +437,8 @@ def look_schedule(n_max: int, n_looks: int | None, min_n: int) -> np.ndarray:
         return np.arange(min_n, n_max + 1)
     if n_looks < 1 or n_looks > n_max - min_n + 1:
         raise ValueError("n_looks must be between 1 and n_max - min_n + 1")
+    if n_looks == 1:
+        return np.array([n_max])
     return np.unique(np.linspace(min_n, n_max, n_looks).round().astype(int))
 
 

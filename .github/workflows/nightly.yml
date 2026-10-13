@@ -15,6 +15,7 @@ jobs:
       - run: uv run python validation/failure_gallery/02_iid_bootstrap_sharpe.py
       - run: uv run python validation/failure_gallery/02b_dm_horizon.py
       - run: uv run python validation/failure_gallery/03_clt_small_n.py
+      - run: uv run python validation/failure_gallery/04_peeking.py
       - run: uv run python validation/failure_gallery/05_ignored_clustering.py
       - uses: actions/upload-artifact@v4
         with:

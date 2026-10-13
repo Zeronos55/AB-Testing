@@ -6,7 +6,7 @@
 
 ## Status
 
-**Phases 0-4 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval). Try it:
+**Phases 0-5 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval; LLM evals with paired + clustered errors, small-N intervals and confidence sequences for peeking). Try it:
 
 ```bash
 uv sync
@@ -62,6 +62,30 @@ at 16 blocks in about a second). Known limits: the block-bootstrap Sharpe interv
 2-4 points short of nominal coverage at T = 500, and DSR treats the registry's trials as
 independent although neighbouring variants are near-duplicates.
 
+Phase 5 (LLM evals and sequential testing):
+
+```bash
+uv run python validation/failure_gallery/03_clt_small_n.py               # normal-theory interval undercovers at N = 30-200
+uv run python validation/failure_gallery/04_peeking.py                   # peeking inflates false positives to ~46%
+uv run pytest -m slow                                                    # + small-N coverage, peeking calibration
+```
+
+`adapters/llm_eval.py` reads per-item JSON Lines (`model`, `item_id`, `score`, optional `cluster_id`)
+into a table paired by item (`adapter: llm_eval`), and `ResponseCache` is an append-only cache of
+model responses keyed by (model, prompt, item, seed) that can run offline; no model is run by the
+package. `dependence: {type: clustered, paired: true}` analyses per-item differences with a
+cluster-robust standard error (items on the same passage are correlated), and a paired right/wrong
+metric (`kind: binary` under `paired`) gets a Tango score interval with McNemar's p-value, which
+keeps its coverage at small N where the normal-theory interval does not (Clopper-Pearson, Wilson,
+Jeffreys and Beta/Dirichlet posteriors are in `methods/small_n.py`). `methods/sequential.py` has
+normal-mixture confidence sequences and always-valid p-values: an interval you may read after every
+observation (about 2% false positives under continuous peeking, versus 46% for a fixed-horizon test).
+Known limits: the sequential methods are a Python API with no `config.yaml` route yet; with plug-in
+variance the sequence is asymptotic and starts at 20 observations; with few clusters the CR1
+interval is mildly liberal; the formulas of Miller (2024) and Bowyer et al. (2025) were implemented
+from their published descriptions and checked with independent oracles, not against the papers' own
+numbers, and the paired interval is Tango's rather than that paper's own recipe.
+
 An A/B config (`adapter: ab_table`, or a `metrics:` list) gets an automatic sample-ratio check,
 multiplicity across success metrics only, one-sided non-inferiority guardrails and a ship /
 no-ship decision per candidate. Large files can be aggregated in place with `table.mode: stats`.
@@ -79,5 +103,5 @@ Build plan:
 | 2 | A/B (Hillstrom, Criteo) | CUPED, SRM, guardrails; 14M rows in under 1 GB of RAM |
 | 3 | Forecasting (M5) | Diebold–Mariano + HLN, MCS/SPA |
 | 4 | Trading | Deflated Sharpe, PBO-CSCV, trial registry |
-| 5 | LLM evals + sequential | Small-N intervals, confidence sequences |
+| 5 | LLM evals + sequential | Small-N intervals, confidence sequences (built) |
 | 6 | Polish | Docs site, Streamlit viewer, PyPI release |

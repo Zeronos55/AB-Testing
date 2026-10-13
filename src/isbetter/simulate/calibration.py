@@ -272,3 +272,39 @@ def dm_type1(
         CalibrationResult(rej[0] / reps, reps, alpha, band),
         CalibrationResult(rej[1] / reps, reps, alpha, band),
     )
+
+
+def sharpe_ci_coverage(
+    rng: np.random.Generator,
+    reps: int,
+    T: int = 500,
+    sharpe: float = 0.05,
+    phi: float = 0.2,
+    block_len: int | None = None,
+    n_resamples: int = 499,
+    alpha: float = 0.05,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Coverage of (iid bootstrap, block bootstrap) Sharpe intervals on AR(1)-GARCH returns.
+
+    ``block_len=None`` lets the block bootstrap choose its own length (Politis-White); the iid
+    bootstrap is the same procedure with block length 1. ``rate`` is the share of intervals that
+    contain the true per-period Sharpe ratio, and the band is +/- 2 Monte Carlo standard errors
+    around ``1 - alpha``.
+    """
+    from isbetter.methods.finance import sharpe_block_bootstrap
+    from isbetter.simulate.dgp import ar1_garch_returns
+
+    r = ar1_garch_returns(rng, reps, T, sharpe=sharpe, phi=phi)
+    hits = [0, 0]
+    for row in r:
+        for j, length in enumerate((1, block_len)):
+            res = sharpe_block_bootstrap(
+                row, rng, block_len=length, n_resamples=n_resamples, alpha=alpha
+            )
+            assert res.ci_low is not None and res.ci_high is not None
+            hits[j] += int(res.ci_low <= sharpe <= res.ci_high)
+    band = mc_band(1 - alpha, reps)
+    return (
+        CalibrationResult(hits[0] / reps, reps, 1 - alpha, band),
+        CalibrationResult(hits[1] / reps, reps, 1 - alpha, band),
+    )

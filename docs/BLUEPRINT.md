@@ -1,7 +1,7 @@
 # Blueprint: `isbetter`, a dependence-aware "Is A really better than B?" toolkit
 
 > Audience: junior engineers and interns joining the build. Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
-> Status: **Phases 0–3 built** (see README for current commands). Later phases are still planned; build them in the order given in section 12.
+> Status: **Phases 0–4 built** (see README for current commands). Later phases are still planned; build them in the order given in section 12.
 
 ---
 
@@ -340,10 +340,10 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 
 | # | Ticket | DoD |
 |---|---|---|
-| 4.1 | `adapters/strategy_returns.py` + `TrialRegistry` (append-only JSONL; every evaluated variant is logged automatically through a decorator/context manager) | DSR refuses to run without a registry or an explicit `n_trials`. |
-| 4.2 | `methods/finance.py`: PSR, DSR, MinTRL | Oracle against the published worked examples (Bailey & López de Prado 2012 and 2014). |
-| 4.3 | PBO-CSCV, vectorised (S = 16 gives 12,870 splits) | On pure noise, PBO ≈ 0.5; with one planted strong edge, PBO is low. Runs in < 30 s. |
-| 4.4 | Block-bootstrap Sharpe CI + SPA/StepM versus buy-and-hold | Coverage test on AR(1)-GARCH returns. |
+| 4.1 | `adapters/strategy_returns.py` + `TrialRegistry` (append-only JSONL; every evaluated variant is logged automatically through a decorator/context manager) | DSR refuses to run without a registry or an explicit `n_trials`. *Built:* `resolve_deflation` raises `MissingTrialsError` without either; `deflated_sharpe` has no default for `n_trials` / `sr_variance`. The same variant logged twice counts once. |
+| 4.2 | `methods/finance.py`: PSR, DSR, MinTRL | Oracle against the published worked examples (Bailey & López de Prado 2012 and 2014). *Built:* the papers' worked examples could not be fetched where this was built, so the oracles are independent of the implementation instead: quadrature, simulation and the tabulated expected maximum of N normals (Harter) for `E[max SR]`; a Monte Carlo check of the Sharpe-variance formula; PSR coverage; and the exact `PSR(MinTRL) = 1 − α` identity. Add the paper fixtures when they can be transcribed. The closed-form `E[max SR]` is a known approximation: about 8% low at N = 2 and 0.5–3% high for N ≥ 3. |
+| 4.3 | PBO-CSCV, vectorised (S = 16 gives 12,870 splits) | On pure noise, PBO ≈ 0.5; with one planted strong edge, PBO is low. Runs in < 30 s. *Built:* `methods/pbo.py`, checked against a literal loop transcription; S = 16 on 2,500 periods × 400 configurations takes about 1 s. One dataset's PBO on noise has sd ≈ 0.14 (the splits overlap); its mean over datasets is 0.5. |
+| 4.4 | Block-bootstrap Sharpe CI + SPA/StepM versus buy-and-hold | Coverage test on AR(1)-GARCH returns. *Built:* at T = 500, φ = 0.2 the block-bootstrap interval covers about 91–93% at nominal 95% (iid: about 86–89%); it is better than iid, not exact. |
 | 4.5 | Failure-gallery #2: iid vs block bootstrap Sharpe CI coverage | Figure produced. |
 | 4.6 | Case study `04_trading_edge/`: a few hundred moving-average variants on daily ETF returns | Report contrasts the naive t-stat of the best variant with its DSR and PBO. |
 

@@ -24,9 +24,15 @@ class Paired:
 
 @dataclass(frozen=True)
 class Clustered:
-    """Units sit in correlated groups (users, passages); cluster_col names the group."""
+    """Units sit in correlated groups (users, passages); cluster_col names the group.
+
+    ``paired=True`` means both variants answered the same items (linked by ``pair_id``) and the
+    items are grouped, as in an LLM eval with questions sharing a passage: the per-item
+    differences are analysed with cluster-robust errors.
+    """
 
     cluster_col: str = "cluster_id"
+    paired: bool = False
     kind = "clustered"
 
 

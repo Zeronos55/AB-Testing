@@ -308,3 +308,185 @@ def sharpe_ci_coverage(
         CalibrationResult(hits[0] / reps, reps, 1 - alpha, band),
         CalibrationResult(hits[1] / reps, reps, 1 - alpha, band),
     )
+
+
+Interval = Callable[[int, int, float], tuple[float, float]]
+
+
+def clt_proportion_interval(x: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
+    """The normal-theory interval for an accuracy: ``clt_interval`` on x ones and n - x zeros."""
+    from isbetter.methods.small_n import clt_interval
+
+    return clt_interval(np.r_[np.ones(x), np.zeros(n - x)], alpha)
+
+
+def exact_proportion_coverage_curve(
+    interval: Interval, n: int, ps: np.ndarray, alpha: float = 0.05
+) -> np.ndarray:
+    """Coverage of ``interval(x, n, alpha)`` at every true accuracy in ``ps``, with no simulation.
+
+    A proportion's interval depends on the data only through ``x ~ Binomial(n, p)``, so the
+    coverage is ``sum_x P(x) * 1[p in interval(x)]`` over the n + 1 possible counts. The
+    intervals are computed once per count and reused for every ``p``.
+    """
+    xs = np.arange(n + 1)
+    lo, hi = np.array([interval(int(x), n, alpha) for x in xs]).T
+    ps = np.asarray(ps, dtype=np.float64)
+    covered = (lo[:, None] <= ps[None, :]) & (ps[None, :] <= hi[:, None])
+    return np.asarray((stats.binom.pmf(xs[:, None], n, ps[None, :]) * covered).sum(0))
+
+
+def exact_proportion_coverage(interval: Interval, n: int, p: float, alpha: float = 0.05) -> float:
+    """Coverage of ``interval`` at one true accuracy ``p`` (see the ``_curve`` version)."""
+    return float(exact_proportion_coverage_curve(interval, n, np.array([p]), alpha)[0])
+
+
+def paired_binary_coverage(
+    rng: np.random.Generator,
+    reps: int,
+    n: int = 50,
+    p_a: float = 0.8,
+    p_b: float = 0.75,
+    rho: float = 0.4,
+    alpha: float = 0.05,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Coverage of (normal-theory paired interval, Tango score interval) for ``p_a - p_b``.
+
+    Items are right/wrong for two models with correlation ``rho``. Tables repeat, so each
+    distinct ``(b, c)`` interval is computed once.
+    """
+    from isbetter.methods.small_n import paired_score_interval
+    from isbetter.simulate.dgp import paired_binary_cells
+
+    b, c = paired_binary_cells(rng, reps, n, p_a, p_b, rho)
+    truth = p_a - p_b
+    z = float(stats.norm.ppf(1 - alpha / 2))
+    cache: dict[tuple[int, int], tuple[float, float]] = {}
+    hits = [0, 0]
+    for bi, ci in zip(b.tolist(), c.tolist(), strict=True):
+        if (bi, ci) not in cache:
+            cache[(bi, ci)] = paired_score_interval(bi, ci, n, alpha)
+        lo, hi = cache[(bi, ci)]
+        hits[1] += int(lo <= truth <= hi)
+        var_d = max(bi + ci - (bi - ci) ** 2 / n, 0.0) / (n - 1)  # sample variance of d_i
+        half = z * np.sqrt(var_d / n)
+        hits[0] += int((bi - ci) / n - half <= truth <= (bi - ci) / n + half)
+    band = mc_band(1 - alpha, reps)
+    return (
+        CalibrationResult(hits[0] / reps, reps, 1 - alpha, band),
+        CalibrationResult(hits[1] / reps, reps, 1 - alpha, band),
+    )
+
+
+def paired_cluster_type1(
+    rng: np.random.Generator,
+    reps: int,
+    groups: int = 30,
+    per_group: int = 5,
+    icc: float = 0.5,
+    alpha: float = 0.05,
+    chunk: int = 2_000,
+) -> tuple[CalibrationResult, CalibrationResult]:
+    """Type I error of (paired t ignoring clusters, paired cluster-robust CR1) for equal models.
+
+    Follows :func:`isbetter.methods.cluster.paired_cluster_robust`: totals of centred
+    differences per cluster, ``G/(G - 1)`` factor, t(G - 1) inference (checked against it in the
+    tests).
+    """
+    from isbetter.simulate.dgp import aa_paired_clustered
+
+    rej = [0, 0]
+    done = 0
+    n = groups * per_group
+    while done < reps:
+        m = min(chunk, reps - done)
+        d = aa_paired_clustered(rng, m, groups, per_group, icc)
+        flat = d.reshape(m, -1)
+        mean = flat.mean(1)
+        t_naive = mean / (flat.std(1, ddof=1) / np.sqrt(n))
+        totals = (d - mean[:, None, None]).sum(2)
+        se = np.sqrt(groups / (groups - 1) * (totals**2).sum(1)) / n
+        rej[0] += int((2 * stats.t.sf(np.abs(t_naive), n - 1) < alpha).sum())
+        rej[1] += int((2 * stats.t.sf(np.abs(mean / se), groups - 1) < alpha).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    return (
+        CalibrationResult(rej[0] / reps, reps, alpha, band),
+        CalibrationResult(rej[1] / reps, reps, alpha, band),
+    )
+
+
+@dataclass
+class PeekingResult:
+    """False-positive rates of one A/A test monitored at a set of looks."""
+
+    n_looks: int
+    n_max: int
+    alpha: float
+    reps: int
+    single_look: CalibrationResult  # fixed-horizon test, looked at once at n_max (the valid use)
+    peeked: CalibrationResult  # same test, stopped at the first look with p < alpha
+    sequence: CalibrationResult  # normal-mixture confidence sequence, plug-in variance
+    sequence_known: CalibrationResult  # same with the variance known (exact guarantee)
+
+
+def look_schedule(n_max: int, n_looks: int | None, min_n: int) -> np.ndarray:
+    """Sample sizes per arm at which an experiment is read: all of ``min_n..n_max`` or evenly
+    spaced ``n_looks`` of them (the last one is always ``n_max``)."""
+    if n_looks is None:
+        return np.arange(min_n, n_max + 1)
+    if n_looks < 1 or n_looks > n_max - min_n + 1:
+        raise ValueError("n_looks must be between 1 and n_max - min_n + 1")
+    if n_looks == 1:
+        return np.array([n_max])
+    return np.unique(np.linspace(min_n, n_max, n_looks).round().astype(int))
+
+
+def peeking_type1(
+    rng: np.random.Generator,
+    reps: int,
+    n_max: int = 2_000,
+    n_looks: int | None = None,
+    alpha: float = 0.05,
+    n_target: int | None = None,
+    min_n: int = 20,
+    chunk: int = 250,
+) -> PeekingResult:
+    """How often an A/A test (two N(0, 1) arms) declares a difference when it is monitored.
+
+    The fixed-horizon Welch test is valid if looked at once at ``n_max``; stopping at the first
+    look with ``p < alpha`` (``peeked``) is what happens when a dashboard is checked daily, and
+    its false-positive rate grows with the number of looks. The confidence sequences, tuned for
+    ``n_target`` (default ``n_max``) in advance, may be read at every look. Setting
+    ``n_looks=None`` reads every sample size from ``min_n`` to ``n_max``.
+    """
+    from isbetter.methods.sequential import mixture_boundary, optimal_rho
+
+    looks = look_schedule(n_max, n_looks, min_n)
+    t = looks.astype(np.float64)
+    rho = optimal_rho(float(n_target or n_max), alpha)
+    boundary = mixture_boundary(t, rho, alpha)
+    crit = stats.t.ppf(
+        1 - alpha / 2, 2 * (looks - 1)
+    )  # fixed-horizon Welch (equal n) critical value
+    hits = np.zeros(4)
+    done = 0
+    while done < reps:
+        m = min(chunk, reps - done)
+        a, b = rng.normal(size=(m, n_max)), rng.normal(size=(m, n_max))
+        ma, mb = np.cumsum(a, 1)[:, looks - 1] / t, np.cumsum(b, 1)[:, looks - 1] / t
+        den = np.maximum(t - 1, 1)
+        va = np.maximum(np.cumsum(a**2, 1)[:, looks - 1] - t * ma**2, 0.0) / den
+        vb = np.maximum(np.cumsum(b**2, 1)[:, looks - 1] - t * mb**2, 0.0) / den
+        diff = np.abs(ma - mb)
+        s = np.sqrt(va + vb)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            tstat = diff / (s / np.sqrt(t))
+        hits[0] += int((tstat[:, -1] > crit[-1]).sum())
+        hits[1] += int((tstat > crit).any(1).sum())
+        hits[2] += int(((diff > s * boundary / t) & (s > 0)).any(1).sum())
+        hits[3] += int((diff > np.sqrt(2.0) * boundary / t).any(1).sum())
+        done += m
+    band = mc_band(alpha, reps)
+    r = [CalibrationResult(float(h) / reps, reps, alpha, band) for h in hits]
+    return PeekingResult(len(looks), n_max, alpha, reps, r[0], r[1], r[2], r[3])

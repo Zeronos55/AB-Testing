@@ -80,13 +80,17 @@ def test_iid_routing(kind, vr, primary, checks):
         (Paired(), "continuous", "cuped"),
         (Clustered(), "ratio", "none"),
         (CVOverlap(10, 2, 2, 2), "continuous", "regression"),
-        (Paired(), "binary", "none"),
+        (CVOverlap(10, 2, 2, 2), "binary", "none"),
         (Iid(), "ratio", "cuped"),
     ],
 )
 def test_unsupported_combinations_refuse_instead_of_degrading(dep, kind, vr):
     with pytest.raises(UnsupportedPlan):
         route(dep, kind, vr)
+
+
+def test_paired_binary_is_routable_to_the_small_n_safe_score_interval():
+    assert route(Paired(), "binary", "none") == ("paired_binary_score", ("paired_beta_posterior",))
 
 
 def test_clustered_binary_is_routable():

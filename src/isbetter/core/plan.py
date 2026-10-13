@@ -12,6 +12,7 @@ from typing import Any
 
 from isbetter.core.config import Config
 from isbetter.core.dependence import (
+    Clustered,
     Dependence,
     dependence_from_dict,
     dependence_to_dict,
@@ -30,6 +31,16 @@ ROUTES: dict[str, tuple[str, tuple[str, ...]]] = {
     "cv_overlap": ("nadeau_bengio", ()),
     "timeseries": ("diebold_mariano_hln", ("stationary_block_bootstrap",)),
 }
+
+# paired right/wrong scores (small-N safe), and paired items grouped in clusters
+PAIRED_BINARY_ROUTE: tuple[str, tuple[str, ...]] = (
+    "paired_binary_score",
+    ("paired_beta_posterior",),
+)
+PAIRED_CLUSTERED_ROUTE: tuple[str, tuple[str, ...]] = (
+    "paired_cluster_robust",
+    ("paired_cluster_bootstrap",),
+)
 
 # dependence=iid routes by (metric kind, variance reduction)
 IID_ROUTES: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
@@ -126,11 +137,15 @@ def route(
                 f"dependence 'timeseries' compares per-origin losses (continuous); metric kind "
                 f"'{kind}' is not routable. Refusing to fall back to a naive test."
             )
-        if kind == "binary" and dep.kind in ("paired", "cv_overlap"):
+        if kind == "binary" and dep.kind == "cv_overlap":
             raise UnsupportedPlan(
-                f"binary metrics under dependence '{dep.kind}' need a paired test on item "
+                "binary metrics under dependence 'cv_overlap' need a paired test on item "
                 "correctness (isbetter.methods.classification.mcnemar); not routable from config."
             )
+        if dep.kind == "paired" and kind == "binary":
+            return PAIRED_BINARY_ROUTE
+        if isinstance(dep, Clustered) and dep.paired:
+            return PAIRED_CLUSTERED_ROUTE
         return ROUTES[dep.kind]
     raise UnsupportedPlan(
         f"dependence '{dep.kind}' is not implemented yet. "

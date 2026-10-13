@@ -13,13 +13,19 @@ from isbetter.core.result import ComparisonResult, MethodResult, Result
 from isbetter.core.schema import CanonicalTable, SchemaError
 from isbetter.core.sufficient import AggregatedTable, SufficientStats
 from isbetter.decision.verdict import CVSpec, decide
-from isbetter.methods.cluster import cluster_bootstrap, cluster_robust_diff
+from isbetter.methods.cluster import (
+    cluster_bootstrap,
+    cluster_robust_diff,
+    paired_cluster_bootstrap,
+    paired_cluster_robust,
+)
 from isbetter.methods.cv import nadeau_bengio
 from isbetter.methods.forecasting import diebold_mariano, suggest_block_length
 from isbetter.methods.multiplicity import adjust
 from isbetter.methods.parametric import paired_t, welch_t_stats
 from isbetter.methods.proportions import fisher_exact_stats, two_proportion_z_stats
 from isbetter.methods.resampling import block_bootstrap, paired_bootstrap, sign_flip_permutation
+from isbetter.methods.small_n import paired_beta_posterior, paired_binary_score
 from isbetter.methods.variance_reduction import (
     cuped,
     delta_method_ratio,
@@ -202,6 +208,27 @@ def _analyse_timeseries(
     return _Outcome(res, cross, len(la))
 
 
+def _analyse_paired_clustered(
+    ra: dict[str, np.ndarray],
+    rb: dict[str, np.ndarray],
+    dep: Clustered,
+    alpha: float,
+    rng: np.random.Generator,
+    with_cross: bool,
+) -> _Outcome:
+    """Same items scored by both variants, items grouped in clusters (an LLM eval)."""
+    for r in (ra, rb):
+        if "pair_id" not in r:
+            raise SchemaError("dependence=clustered with paired=true requires a 'pair_id' column")
+    ka = np.argsort(ra["pair_id"].astype(str), kind="stable")
+    kb = np.argsort(rb["pair_id"].astype(str), kind="stable")
+    if not np.array_equal(ra["pair_id"].astype(str)[ka], rb["pair_id"].astype(str)[kb]):
+        raise SchemaError("the two variants were not scored on the same items")
+    x, y, clusters = ra["value"][ka], rb["value"][kb], ra[dep.cluster_col][ka]
+    cross = [paired_cluster_bootstrap(x, y, clusters, rng, alpha=alpha)] if with_cross else []
+    return _Outcome(paired_cluster_robust(x, y, clusters, alpha), cross, len(x))
+
+
 def _analyse(
     plan: AnalysisPlan,
     table: Data,
@@ -218,6 +245,10 @@ def _analyse(
             f"aggregated data supports dependence=iid only (plan declares '{dep.kind}')"
         )
     base, metric = plan.baseline, plan.metric
+    if isinstance(dep, Paired) and plan.metric_kind == "binary":
+        x, y = _aligned(table, cand, base, metric)
+        cross = [paired_beta_posterior(x, y, rng, alpha=alpha)] if with_cross else []
+        return _Outcome(paired_binary_score(x, y, alpha), cross, len(x))
     if isinstance(dep, Paired):
         x, y = _aligned(table, cand, base, metric)
         cross = (
@@ -239,6 +270,8 @@ def _analyse(
         ra, rb = _rows(table, cand, metric), _rows(table, base, metric)
         if dep.cluster_col not in ra or dep.cluster_col not in rb:
             raise SchemaError(f"missing cluster column '{dep.cluster_col}'")
+        if dep.paired:
+            return _analyse_paired_clustered(ra, rb, dep, alpha, rng, with_cross)
         args = (ra["value"], ra[dep.cluster_col], rb["value"], rb[dep.cluster_col])
         cross = [cluster_bootstrap(*args, rng, alpha=alpha)] if with_cross else []
         return _Outcome(cluster_robust_diff(*args, alpha=alpha), cross, len(args[0]) + len(args[2]))

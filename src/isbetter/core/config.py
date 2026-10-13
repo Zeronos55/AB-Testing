@@ -86,6 +86,7 @@ class PairedCfg(_Strict):
 class ClusteredCfg(_Strict):
     type: Literal["clustered"]
     cluster_col: str = "cluster_id"
+    paired: bool = False
 
 
 class CVOverlapCfg(_Strict):
@@ -198,7 +199,7 @@ class Config(_Strict):
         if isinstance(d, PairedCfg):
             return Paired()
         if isinstance(d, ClusteredCfg):
-            return Clustered(d.cluster_col)
+            return Clustered(d.cluster_col, d.paired)
         if isinstance(d, CVOverlapCfg):
             return CVOverlap(d.n_train, d.n_test, d.repeats, d.folds)
         return TimeSeries(d.block_len, d.hac_lags, d.horizon)

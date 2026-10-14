@@ -89,8 +89,13 @@ keeps its coverage at small N where the normal-theory interval does not (Clopper
 Jeffreys and Beta/Dirichlet posteriors are in `methods/small_n.py`). `methods/sequential.py` has
 normal-mixture confidence sequences and always-valid p-values: an interval you may read after every
 observation (about 2% false positives under continuous peeking, versus 46% for a fixed-horizon test).
-Known limits: the sequential methods are a Python API with no `config.yaml` route yet; with plug-in
-variance the sequence is asymptotic and starts at 20 observations; with few clusters the CR1
+Add `sequential: {n_target: 1000}` to a single-metric `iid` or `paired` config (rows need a `time`
+column: arrival order) and `isbetter run` reports the confidence sequence and its always-valid
+p-value as the primary result, with the fixed-horizon test beside it as the foil and a warning
+when the two disagree (`examples/toy_stream.yaml`). `n_target` (or `rho`) must be fixed in advance.
+Known limits: sequential monitoring is not yet wired into A/B experiments (SRM, guardrails),
+clustered or time-series data; with plug-in variance the sequence is asymptotic and starts at 20
+observations; with few clusters the CR1
 interval is mildly liberal; the formulas of Miller (2024) and Bowyer et al. (2025) were implemented
 from their published descriptions and checked with independent oracles, not against the papers' own
 numbers, and the paired interval is Tango's rather than that paper's own recipe.

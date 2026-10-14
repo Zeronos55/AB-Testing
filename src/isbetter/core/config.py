@@ -117,6 +117,31 @@ class DecisionCfg(_Strict):
     ship_requires_practical: bool = False
 
 
+class SequentialCfg(_Strict):
+    """Sequential monitoring: an interval and p-value that stay valid at every look.
+
+    ``n_target`` (the sample size per arm you plan to reach) or ``rho`` must be fixed before
+    looking at the data. ``sigma`` is a known standard deviation, or a bound on it (0.5 for scores
+    in [0, 1]); without it the running standard deviation is used, which is asymptotic and needs
+    ``min_n`` observations before the first look. Rows must carry a ``time`` column: arrival order.
+    """
+
+    n_target: float | None = Field(default=None, gt=0)
+    rho: float | None = Field(default=None, gt=0)
+    sigma: float | None = Field(default=None, gt=0)
+    min_n: int = Field(default=20, ge=2)
+
+    @model_validator(mode="after")
+    def _one_tuning(self) -> SequentialCfg:
+        if (self.n_target is None) == (self.rho is None):
+            raise ValueError(
+                "sequential needs exactly one of `n_target` (planned sample size per arm) or "
+                "`rho`, fixed before looking at the data; the length of the data you already "
+                "have is not a valid choice"
+            )
+        return self
+
+
 class FinanceCfg(_Strict):
     """Overfitting guards for a Sharpe-ratio comparison (``metric.kind: returns``).
 
@@ -192,6 +217,7 @@ class Config(_Strict):
     table: TableCfg = TableCfg()
     design: DesignCfg = DesignCfg()
     finance: FinanceCfg | None = None
+    sequential: SequentialCfg | None = None
     seed: int = 0
     report: ReportCfg = ReportCfg()
 
@@ -227,6 +253,19 @@ class Config(_Strict):
                 )
         elif self.finance is not None:
             raise ValueError("`finance` is only valid with metric kind 'returns'")
+        if self.sequential is not None:
+            if self.is_experiment:
+                raise ValueError(
+                    "`sequential` is for single-metric comparisons (adapter csv_long or "
+                    "llm_eval), not A/B experiments with SRM and guardrails yet"
+                )
+            if not isinstance(self.dependence, IidCfg | PairedCfg):
+                raise ValueError("`sequential` supports dependence iid and paired only")
+            m = self.metric_list[0]
+            if m.kind not in ("continuous", "binary") or m.variance_reduction != "none":
+                raise ValueError(
+                    "`sequential` supports continuous and binary metrics without variance reduction"
+                )
         split = self.design.expected_split
         if split is not None:
             arms = {self.variants.baseline, *self.variants.candidates}

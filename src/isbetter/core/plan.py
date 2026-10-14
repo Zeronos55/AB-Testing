@@ -49,6 +49,13 @@ SHARPE_ROUTE: tuple[str, tuple[str, ...]] = (
     ("probabilistic_sharpe", "deflated_sharpe", "min_track_record_length"),
 )
 
+# sequential monitoring (dependence iid or paired): an always-valid interval, with the fixed-horizon
+# test of the same data as the "peeking" foil
+SEQUENTIAL_ROUTES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "iid": ("confidence_sequence_normal_mixture", ("welch_t",)),
+    "paired": ("confidence_sequence_normal_mixture", ("paired_t",)),
+}
+
 # dependence=iid routes by (metric kind, variance reduction)
 IID_ROUTES: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
     ("continuous", "none"): ("welch_t", ()),
@@ -81,6 +88,7 @@ class AnalysisPlan:
     covariate: str | None = None
     role: str = "success"
     finance: dict[str, Any] | None = None  # overfitting-guard options (kind: returns)
+    sequential: dict[str, Any] | None = None  # sequential-monitoring options
 
     def pretty(self) -> str:
         dep = dependence_to_dict(self.dependence)
@@ -97,6 +105,13 @@ class AnalysisPlan:
         if self.variance_reduction != "none":
             lines.insert(
                 4, f"  adjustment : {self.variance_reduction} on covariate '{self.covariate}'"
+            )
+        if self.sequential is not None:
+            q = self.sequential
+            tuning = f"n_target={q['n_target']:g}" if q.get("n_target") else f"rho={q['rho']:g}"
+            lines.append(
+                f"  sequential : confidence sequence ({tuning}, first look at {q['min_n']} "
+                "observations); valid at every look"
             )
         if self.finance is not None:
             f = self.finance
@@ -130,9 +145,22 @@ class AnalysisPlan:
 
 
 def route(
-    dep: Dependence, kind: str = "continuous", variance_reduction: str = "none"
+    dep: Dependence,
+    kind: str = "continuous",
+    variance_reduction: str = "none",
+    sequential: bool = False,
 ) -> tuple[str, tuple[str, ...]]:
     """Primary method and cross-checks for a dependence / metric kind / adjustment."""
+    if sequential:
+        if dep.kind not in SEQUENTIAL_ROUTES or kind not in ("continuous", "binary"):
+            raise UnsupportedPlan(
+                "sequential monitoring supports dependence 'iid' and 'paired' with continuous or "
+                f"binary metrics (got '{dep.kind}', '{kind}'). Refusing to fall back to a "
+                "fixed-horizon test that would be invalid under repeated looks."
+            )
+        if variance_reduction != "none":
+            raise UnsupportedPlan("sequential monitoring does not support variance reduction yet")
+        return SEQUENTIAL_ROUTES[dep.kind]
     if kind == "returns":
         if dep.kind != "timeseries" or variance_reduction != "none":
             raise UnsupportedPlan(
@@ -181,7 +209,7 @@ def build_plans(cfg: Config) -> list[AnalysisPlan]:
     dep = cfg.to_dependence()
     plans = []
     for m in cfg.metric_list:
-        primary, checks = route(dep, m.kind, m.variance_reduction)
+        primary, checks = route(dep, m.kind, m.variance_reduction, cfg.sequential is not None)
         success = m.role == "success"
         plans.append(
             AnalysisPlan(
@@ -203,6 +231,7 @@ def build_plans(cfg: Config) -> list[AnalysisPlan]:
                 covariate=m.covariate,
                 role=m.role,
                 finance=cfg.finance.model_dump() if cfg.finance is not None else None,
+                sequential=cfg.sequential.model_dump() if cfg.sequential is not None else None,
             )
         )
     return plans

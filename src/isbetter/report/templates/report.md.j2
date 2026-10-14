@@ -29,3 +29,13 @@ reported alongside the verdict and do not change it. Sharpe ratios are per perio
 {% endfor %}{% else %}
 PBO was not computed: it ranks several candidate strategies against each other and needs at least two.
 {% endif %}{% endif %}
+{% if r.plan.sequential %}
+## Reading this result while the data are still coming in
+
+The interval and p-value above come from a confidence sequence: they hold at every sample size at
+once, so the result may be read after every observation, and a decision to stop because it looks
+good does not inflate the false-positive rate. The fixed-horizon test in each table is shown only
+for comparison; it is valid just once, at a sample size fixed in advance, and peeking at it
+inflates false positives (see `validation/failure_gallery/04_peeking.py`). The price is a wider
+interval: the sequence is tuned to be tightest around the planned sample size.
+{% endif %}

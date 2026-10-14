@@ -1,0 +1,11 @@
+# A live experiment you check every day: 600 users per arm so far, planned to run to 1000.
+# The confidence sequence is valid at every look; the fixed-horizon test is shown as the foil.
+experiment: toy_stream
+adapter: csv_long
+data: toy_stream.csv
+variants: {baseline: control, candidates: [treatment]}
+metric: {name: revenue, higher_is_better: true}
+dependence: {type: iid}
+decision: {min_effect: 0.5, alpha: 0.05}
+sequential: {n_target: 1000}
+seed: 20261010

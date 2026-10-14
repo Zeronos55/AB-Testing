@@ -49,7 +49,7 @@ class MetricCfg(_Strict):
 
     name: str
     higher_is_better: bool = True
-    kind: Literal["continuous", "binary", "ratio"] = "continuous"
+    kind: Literal["continuous", "binary", "ratio", "returns"] = "continuous"
     denominator: str | None = None
     role: Literal["success", "guardrail"] = "success"
     min_effect: float | None = Field(default=None, ge=0)
@@ -117,10 +117,45 @@ class DecisionCfg(_Strict):
     ship_requires_practical: bool = False
 
 
+class FinanceCfg(_Strict):
+    """Overfitting guards for a Sharpe-ratio comparison (``metric.kind: returns``).
+
+    The Deflated Sharpe Ratio must know how many strategy variants were tried, so either a
+    ``registry`` (a TrialRegistry JSON Lines file) or an explicit ``n_trials`` with its
+    ``sr_variance`` (variance of the trials' per-period Sharpe ratios) is required. There is no
+    default trial count: assuming one would hide the selection bias.
+    """
+
+    registry: str | None = None
+    n_trials: int | None = Field(default=None, ge=1)
+    sr_variance: float | None = Field(default=None, ge=0)
+    sr_benchmark: float = 0.0
+    pbo_blocks: int = Field(default=16, ge=4)
+    pbo_metric: Literal["sharpe", "mean"] = "sharpe"
+
+    @model_validator(mode="after")
+    def _consistent(self) -> FinanceCfg:
+        if self.registry is None and self.n_trials is None:
+            raise ValueError(
+                "finance needs `registry` (a trial log) or `n_trials`: the Deflated Sharpe Ratio "
+                "cannot be computed without knowing how many variants were tried"
+            )
+        if self.registry is None and self.sr_variance is None:
+            raise ValueError(
+                "finance.n_trials without a registry also needs `sr_variance`, the variance of "
+                "the trials' per-period Sharpe ratios"
+            )
+        if self.pbo_blocks % 2:
+            raise ValueError("finance.pbo_blocks must be even (half the blocks are in-sample)")
+        return self
+
+
 class TableCfg(_Strict):
-    """File layout for adapter ``ab_table``: one row per unit, one column per metric."""
+    """File layout for adapter ``ab_table`` (one row per unit, one column per metric) and for
+    adapter ``strategy_returns`` (a wide CSV: a ``time_col`` plus one column per strategy)."""
 
     variant_col: str | None = None
+    time_col: str = "date"
     unit_col: str | None = None
     cluster_col: str | None = None
     mode: Literal["unit", "stats"] = "unit"
@@ -156,6 +191,7 @@ class Config(_Strict):
     decision: DecisionCfg = DecisionCfg()
     table: TableCfg = TableCfg()
     design: DesignCfg = DesignCfg()
+    finance: FinanceCfg | None = None
     seed: int = 0
     report: ReportCfg = ReportCfg()
 
@@ -173,6 +209,24 @@ class Config(_Strict):
                 raise ValueError("adapter ab_table needs table.variant_col (the arm column)")
             if self.table.mode == "stats" and not isinstance(self.dependence, IidCfg):
                 raise ValueError("table.mode: stats (aggregated data) supports dependence iid only")
+        returns = [m.name for m in self.metric_list if m.kind == "returns"]
+        if returns:
+            if self.metrics is not None:
+                raise ValueError("metric kind 'returns' needs the single `metric` form")
+            if not isinstance(self.dependence, TimeSeriesCfg):
+                raise ValueError("metric kind 'returns' needs `dependence: {type: timeseries}`")
+            if self.finance is None:
+                raise ValueError(
+                    "metric kind 'returns' needs a `finance` block (trial registry or n_trials "
+                    "for the Deflated Sharpe Ratio)"
+                )
+            if self.decision.correction != "none":
+                raise ValueError(
+                    "decision.correction must be 'none' for returns: selection across variants is "
+                    "handled by the Deflated Sharpe Ratio and PBO (finance block), not by Holm/BH"
+                )
+        elif self.finance is not None:
+            raise ValueError("`finance` is only valid with metric kind 'returns'")
         split = self.design.expected_split
         if split is not None:
             arms = {self.variants.baseline, *self.variants.candidates}

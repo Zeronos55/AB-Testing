@@ -4,7 +4,9 @@
 **Verdict: {{ label_text[c.verdict.label] }}** (`{{ c.verdict.label }}`)
 
 {{ c.verdict.explanation }}
-{% if c.verdict.n_needed or c.verdict.n_needed_note %}
+{% for w in c.warnings %}
+> **Warning:** {{ w }}
+{% endfor %}{% if c.verdict.n_needed or c.verdict.n_needed_note %}
 **How much more data?** {% if c.verdict.n_needed %}About {{ "%.0f"|format(c.verdict.n_needed) }} observations in total (currently {{ c.n_pairs }}). {% endif %}{% if c.verdict.n_needed_note %}{{ c.verdict.n_needed_note }}.{% endif %}
 {% endif %}
 

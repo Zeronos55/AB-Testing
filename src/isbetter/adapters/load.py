@@ -7,6 +7,13 @@ from pathlib import Path
 from isbetter.adapters.ab_table import AggSpec, aggregate_ab_table, read_ab_table
 from isbetter.adapters.csv_long import read_csv
 from isbetter.adapters.llm_eval import read_item_scores
+from isbetter.adapters.strategy_returns import (
+    DeflationInputs,
+    TrialRegistry,
+    read_returns_csv,
+    resolve_deflation,
+    returns_table,
+)
 from isbetter.core.config import Config
 from isbetter.core.dependence import Clustered
 from isbetter.core.plan import AnalysisPlan
@@ -27,6 +34,10 @@ def load_data(
     dep = plans[0].dependence
     if cfg.adapter == "llm_eval":
         return read_item_scores(path, dep, metric=plans[0].metric)
+    if cfg.adapter == "strategy_returns":
+        panel = read_returns_csv(path, time_col=cfg.table.time_col)
+        series = {name: panel.series(name) for name in panel.names}
+        return returns_table(series, panel.times, metric=plans[0].metric)
     if cfg.adapter != "ab_table":
         return read_csv(path, dep)
 
@@ -54,3 +65,22 @@ def load_data(
         cluster_name=dep.cluster_col if isinstance(dep, Clustered) else "cluster_id",
         dependence=dep,
     )
+
+
+def load_deflation(cfg: Config, base_dir: Path) -> DeflationInputs | None:
+    """Trial count and Sharpe variance for the Deflated Sharpe Ratio (``None`` without finance).
+
+    Reads the trial registry named in ``finance.registry`` (relative to ``base_dir``). Raises
+    ``MissingTrialsError`` (a ``ValueError``) if the registry is missing, empty or too short.
+    """
+    f = cfg.finance
+    if f is None:
+        return None
+    registry = None
+    if f.registry is not None:
+        reg_path = Path(f.registry)
+        reg_path = reg_path if reg_path.is_absolute() else base_dir / reg_path
+        registry = TrialRegistry(reg_path)
+        if not reg_path.exists():
+            raise ValueError(f"trial registry {reg_path} does not exist")
+    return resolve_deflation(registry, f.n_trials, f.sr_variance)

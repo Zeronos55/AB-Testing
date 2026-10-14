@@ -13,3 +13,19 @@
 Estimates are **candidate − baseline** in the metric's own units. "Oriented" values flip the sign
 for lower-is-better metrics so that positive always means the candidate wins.
 {% from "_comparison.md.j2" import comparison %}{% for c in r.comparisons %}{{ comparison(c, r, "###", label_text, row) }}{% endfor %}
+{% if r.plan.finance %}
+## Overfitting guards
+
+The verdict above compares Sharpe ratios; it does not know how many strategies were tried before
+these were picked. The Deflated Sharpe Ratio (DSR) in each table corrects one strategy for that
+search, and the Probability of Backtest Overfitting (PBO) below judges the whole set. They are
+reported alongside the verdict and do not change it. Sharpe ratios are per period, not annualised.
+{% if r.family_checks %}{% for m in r.family_checks %}
+**{{ m.method }} = {{ "%.2f"|format(m.estimate) }}** over {{ m.diagnostics.n_configs }} candidate strategies ({{ m.diagnostics.n_splits }} in-sample/out-of-sample splits).
+
+{{ m.rationale }}
+{% endfor %}{% for w in r.family_warnings %}
+> **Warning:** {{ w }}
+{% endfor %}{% else %}
+PBO was not computed: it ranks several candidate strategies against each other and needs at least two.
+{% endif %}{% endif %}

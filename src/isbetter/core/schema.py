@@ -147,7 +147,13 @@ def _check_time(cols: dict[str, np.ndarray], variant: np.ndarray, metric: np.nda
     for v in np.unique(variant):
         for m in np.unique(metric):
             tt = t[(variant == v) & (metric == m)]
-            if len(tt) > 1 and not (np.diff(tt) > 0).all():
+            try:
+                increasing = len(tt) < 2 or bool((np.diff(tt) > 0).all())
+            except TypeError as exc:
+                raise SchemaError(
+                    "'time' must be numeric (convert dates to numbers first)"
+                ) from exc
+            if not increasing:
                 raise SchemaError(
                     f"'time' must be strictly increasing within variant '{v}', metric '{m}'"
                 )

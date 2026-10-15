@@ -50,8 +50,8 @@ Run ruff, mypy and fast pytest before every commit. CI runs Python 3.11 and 3.12
 - Don't commit generated outputs (`data/`, `case_studies/*/out/`).
 
 ## Gotchas
-- Case studies 01 to 04 (`01_fraud_classifiers`, `02_ab_hillstrom_criteo`, `03_forecasting_m5`,
-  `04_trading_edge`) use synthetic stand-ins, not real data; their REPORTs say so. Each `run.py`
+- Case studies 01 to 05 (`01_fraud_classifiers`, `02_ab_hillstrom_criteo`, `03_forecasting_m5`,
+  `04_trading_edge`, `05_llm_eval`) use synthetic stand-ins, not real data; their REPORTs say so. Each `run.py`
   has a path for real data that is tested only on a tiny file.
 - Optional extras (`ab`, `ml`, `forecast`, ...) are not in the base install; dev tests
   need the `dev` dependency group.

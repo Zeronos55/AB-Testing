@@ -67,6 +67,7 @@ Phase 5 (LLM evals and sequential testing):
 ```bash
 uv run python validation/failure_gallery/03_clt_small_n.py               # normal-theory interval undercovers at N = 30-200
 uv run python validation/failure_gallery/04_peeking.py                   # peeking inflates false positives to ~46%
+uv run python case_studies/05_llm_eval/run.py                            # two models, 200 questions in 50 passages
 uv run pytest -m slow                                                    # + small-N coverage, peeking calibration
 ```
 

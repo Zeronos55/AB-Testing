@@ -1,0 +1,12 @@
+# Is the candidate model better than the baseline on the same 200 questions (50 passages x 4)?
+# run.py writes out/items_*.jsonl (one line per model and question). Questions on the same passage
+# are correlated, and both models answered the same questions, hence clustered + paired.
+experiment: llm_eval
+adapter: llm_eval
+data: out/items_null.jsonl
+variants: {baseline: baseline, candidates: [candidate]}
+metric: {name: correct, higher_is_better: true}
+dependence: {type: clustered, paired: true}
+decision: {min_effect: 0.03, alpha: 0.05, correction: none}
+seed: 20261010
+report: {format: [markdown]}

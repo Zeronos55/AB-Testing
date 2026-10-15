@@ -4,6 +4,7 @@ The papers' worked numbers could not be fetched where this was built, so the ref
 independent of the implementations instead: statsmodels' cluster-robust covariance, SciPy's
 exact interval, a numeric optimiser for the restricted MLE, McNemar's chi-square (the score test
 at delta = 0), analytic Dirichlet moments and a literal transcription of Miller's formula.
+``test_errorbars_oracle.py`` adds a cross-check against the third-party ``errorbars`` package.
 """
 
 import itertools

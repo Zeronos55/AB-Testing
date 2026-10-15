@@ -330,7 +330,7 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 | # | Ticket | DoD |
 |---|---|---|
 | 3.1 | `adapters/forecast_backtest.py`: per-origin, per-horizon losses (MAE, MASE, RMSSE) | Schema passes; `time` is monotone. |
-| 3.2 | `methods/forecasting.py`: DM + HLN | Oracle against statsmodels (if the installed version has `diebold_mariano_test`) **and** stored R `forecast::dm.test` fixtures at h = 1, 3 and 7. *Built:* statsmodels 0.15 has no DM test, so the oracles are statsmodels' HAC covariance (uniform and Bartlett kernels) and a transcription of `dm.test`; the R fixture test is in place but skips until `tests/oracle/fixtures/make_dm_fixtures.R` has been run where R is available. |
+| 3.2 | `methods/forecasting.py`: DM + HLN | Oracle against statsmodels (if the installed version has `diebold_mariano_test`) **and** stored R `forecast::dm.test` fixtures at h = 1, 3 and 7. *Built:* statsmodels 0.15 has no DM test, so the oracles are statsmodels' HAC covariance (uniform and Bartlett kernels) and a transcription of `dm.test`; and `tests/oracle/fixtures/dm_r.json` holds stored `forecast::dm.test` output (R 4.5.3, `forecast` 9.0.2; 12 cases at h = 1, 3, 7, T = 40 and 120, power 1 and 2) that the test matches to a relative 1e-8, regenerated with `make_dm_fixtures.R`. |
 | 3.3 | Wrap `arch` SPA / StepM / MCS behind our `MethodResult` | Wrapper tests on the documented `arch` example. |
 | 3.4 | Block-length suggestion diagnostic (Politis–White, via `arch.bootstrap.optimal_block_length`) | Appears in the report diagnostics. |
 | 3.5 | Failure-gallery #2b: a DM test with h > 1 that ignores autocorrelation over-rejects | Figure produced. |

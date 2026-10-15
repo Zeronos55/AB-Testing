@@ -191,7 +191,7 @@ def pbo_cscv(
             "oos_on_is_slope": slope,
             "mean_is_perf": float(res.is_perf.mean()),
             "mean_oos_perf": float(res.oos_perf.mean()),
-            "most_selected": [(labels[j], int(counts[j])) for j in top if counts[j] > 0],
+            "most_selected": [[labels[j], int(counts[j])] for j in top if counts[j] > 0],
         },
     )
 

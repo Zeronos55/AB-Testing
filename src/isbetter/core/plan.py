@@ -42,6 +42,13 @@ PAIRED_CLUSTERED_ROUTE: tuple[str, tuple[str, ...]] = (
     ("paired_cluster_bootstrap",),
 )
 
+# per-period returns of strategies (dependence=timeseries): the Sharpe ratio difference versus the
+# baseline, with the overfitting guards reported alongside
+SHARPE_ROUTE: tuple[str, tuple[str, ...]] = (
+    "sharpe_block_bootstrap",
+    ("probabilistic_sharpe", "deflated_sharpe", "min_track_record_length"),
+)
+
 # dependence=iid routes by (metric kind, variance reduction)
 IID_ROUTES: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
     ("continuous", "none"): ("welch_t", ()),
@@ -73,6 +80,7 @@ class AnalysisPlan:
     variance_reduction: str = "none"
     covariate: str | None = None
     role: str = "success"
+    finance: dict[str, Any] | None = None  # overfitting-guard options (kind: returns)
 
     def pretty(self) -> str:
         dep = dependence_to_dict(self.dependence)
@@ -89,6 +97,13 @@ class AnalysisPlan:
         if self.variance_reduction != "none":
             lines.insert(
                 4, f"  adjustment : {self.variance_reduction} on covariate '{self.covariate}'"
+            )
+        if self.finance is not None:
+            f = self.finance
+            where = f"registry {f['registry']}" if f.get("registry") else "explicit n_trials"
+            lines.append(
+                f"  guards     : DSR from {where}; PBO over {f['pbo_blocks']} blocks "
+                f"({f['pbo_metric']}); Sharpe ratios are per period, not annualised"
             )
         return "\n".join(lines)
 
@@ -118,6 +133,14 @@ def route(
     dep: Dependence, kind: str = "continuous", variance_reduction: str = "none"
 ) -> tuple[str, tuple[str, ...]]:
     """Primary method and cross-checks for a dependence / metric kind / adjustment."""
+    if kind == "returns":
+        if dep.kind != "timeseries" or variance_reduction != "none":
+            raise UnsupportedPlan(
+                "metric kind 'returns' compares strategies' Sharpe ratios and needs "
+                f"dependence 'timeseries' without variance reduction (got '{dep.kind}'). "
+                "Refusing to fall back to a different test."
+            )
+        return SHARPE_ROUTE
     if dep.kind == "iid":
         try:
             return IID_ROUTES[(kind, variance_reduction)]
@@ -179,6 +202,7 @@ def build_plans(cfg: Config) -> list[AnalysisPlan]:
                 variance_reduction=m.variance_reduction,
                 covariate=m.covariate,
                 role=m.role,
+                finance=cfg.finance.model_dump() if cfg.finance is not None else None,
             )
         )
     return plans

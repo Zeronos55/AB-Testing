@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Protocol
 
 import numpy as np
 
@@ -20,9 +21,16 @@ from isbetter.methods.cluster import (
     paired_cluster_robust,
 )
 from isbetter.methods.cv import nadeau_bengio
+from isbetter.methods.finance import (
+    deflated_sharpe,
+    min_track_record,
+    probabilistic_sharpe,
+    sharpe_block_bootstrap,
+)
 from isbetter.methods.forecasting import diebold_mariano, suggest_block_length
 from isbetter.methods.multiplicity import adjust
 from isbetter.methods.parametric import paired_t, welch_t_stats
+from isbetter.methods.pbo import pbo_cscv
 from isbetter.methods.proportions import fisher_exact_stats, two_proportion_z_stats
 from isbetter.methods.resampling import block_bootstrap, paired_bootstrap, sign_flip_permutation
 from isbetter.methods.small_n import paired_beta_posterior, paired_binary_score
@@ -61,12 +69,21 @@ class FamilyAdjustment:
     adjusted_p: np.ndarray | None = None
 
 
+class Deflation(Protocol):
+    """What the Deflated Sharpe Ratio needs to know about the search (see ``resolve_deflation``)."""
+
+    n_trials: int
+    sr_variance: float
+    source: str
+
+
 @dataclass
 class _Outcome:
     primary: MethodResult
     cross: list[MethodResult]
     n: int
     cv: CVSpec | None = None
+    warnings: list[str] = field(default_factory=list)
 
 
 def _rows(table: CanonicalTable, variant: str, metric: str) -> dict[str, np.ndarray]:
@@ -208,6 +225,68 @@ def _analyse_timeseries(
     return _Outcome(res, cross, len(la))
 
 
+def _analyse_sharpe(
+    plan: AnalysisPlan,
+    table: CanonicalTable,
+    cand: str,
+    dep: TimeSeries,
+    alpha: float,
+    rng: np.random.Generator,
+    with_cross: bool,
+    deflation: Deflation | None,
+) -> _Outcome:
+    """Sharpe ratio of a strategy versus the baseline (for example buy-and-hold).
+
+    The primary result is the block-bootstrap interval for the Sharpe ratio difference. The
+    overfitting guards (PSR, DSR, MinTRL of the candidate) are reported alongside and never
+    change the verdict; they raise a warning instead.
+    """
+    guards = plan.finance
+    if guards is None:
+        raise SchemaError("metric kind 'returns' needs a finance block")
+    ra, ta = _loss_series(table, cand, plan.metric, 1)
+    rb, tb = _loss_series(table, plan.baseline, plan.metric, 1)
+    if not np.array_equal(ta, tb):
+        raise SchemaError(
+            f"variants '{cand}' and '{plan.baseline}' have returns for different periods "
+            f"(metric '{plan.metric}'); align them first"
+        )
+    primary = sharpe_block_bootstrap(ra, rng, benchmark=rb, block_len=dep.block_len, alpha=alpha)
+    if not with_cross:
+        return _Outcome(primary, [], len(ra))
+    if deflation is None:
+        raise ValueError(
+            "the Deflated Sharpe Ratio needs the number of variants tried: give "
+            "finance.registry or finance.n_trials (with finance.sr_variance)"
+        )
+    bench = float(guards["sr_benchmark"])
+    psr_ = probabilistic_sharpe(ra, bench, plan.alpha)
+    dsr_ = deflated_sharpe(
+        ra, n_trials=deflation.n_trials, sr_variance=deflation.sr_variance, alpha=plan.alpha
+    )
+    dsr_.diagnostics["source"] = deflation.source
+    mintrl = min_track_record(ra, bench, plan.alpha)
+    warnings: list[str] = []
+    confidence = 1 - plan.alpha
+    if dsr_.diagnostics["dsr"] < confidence:
+        warnings.append(
+            f"Deflated Sharpe Ratio {dsr_.diagnostics['dsr']:.2f} is below {confidence:.2f}: "
+            f"after allowing for the best of {deflation.n_trials} variants tried, luck "
+            "cannot be ruled out as the source of this Sharpe ratio."
+        )
+    if not mintrl.diagnostics["enough"]:
+        need = mintrl.estimate
+        warnings.append(
+            "The track record is shorter than the minimum needed for this Sharpe ratio "
+            + (
+                f"({len(ra)} of {need:.0f} periods)."
+                if need != float("inf")
+                else "(its Sharpe ratio does not exceed the benchmark)."
+            )
+        )
+    return _Outcome(primary, [psr_, dsr_, mintrl], len(ra), warnings=warnings)
+
+
 def _analyse_paired_clustered(
     ra: dict[str, np.ndarray],
     rb: dict[str, np.ndarray],
@@ -236,6 +315,7 @@ def _analyse(
     alpha: float,
     rng: np.random.Generator,
     with_cross: bool,
+    deflation: Deflation | None = None,
 ) -> _Outcome:
     dep = plan.dependence
     if isinstance(dep, Iid):
@@ -275,6 +355,8 @@ def _analyse(
         args = (ra["value"], ra[dep.cluster_col], rb["value"], rb[dep.cluster_col])
         cross = [cluster_bootstrap(*args, rng, alpha=alpha)] if with_cross else []
         return _Outcome(cluster_robust_diff(*args, alpha=alpha), cross, len(args[0]) + len(args[2]))
+    if isinstance(dep, TimeSeries) and plan.metric_kind == "returns":
+        return _analyse_sharpe(plan, table, cand, dep, alpha, rng, with_cross, deflation)
     if isinstance(dep, TimeSeries):
         return _analyse_timeseries(plan, table, cand, dep, alpha, rng, with_cross)
     raise ValueError(f"unsupported dependence {dep.kind!r}")  # pragma: no cover
@@ -297,8 +379,35 @@ def raw_pvalues(plan: AnalysisPlan, data: Data) -> np.ndarray:
     return np.array([o.primary.p_value if o.primary.p_value is not None else 1.0 for o in first])
 
 
-def run(plan: AnalysisPlan, data: Data, family: FamilyAdjustment | None = None) -> Result:
-    """Run every candidate of ``plan``; ``family`` overrides the within-plan multiplicity."""
+def _pbo_over_candidates(plan: AnalysisPlan, table: CanonicalTable) -> list[MethodResult]:
+    """Probability of Backtest Overfitting over the candidate strategies (needs at least two)."""
+    guards = plan.finance
+    if guards is None or len(plan.candidates) < 2:
+        return []
+    cols = [_loss_series(table, c, plan.metric, 1)[0] for c in plan.candidates]
+    if len({len(c) for c in cols}) != 1:
+        raise SchemaError("candidate strategies must have returns for the same periods")
+    return [
+        pbo_cscv(
+            np.column_stack(cols),
+            int(guards["pbo_blocks"]),
+            str(guards["pbo_metric"]),
+            names=plan.candidates,
+        )
+    ]
+
+
+def run(
+    plan: AnalysisPlan,
+    data: Data,
+    family: FamilyAdjustment | None = None,
+    deflation: Deflation | None = None,
+) -> Result:
+    """Run every candidate of ``plan``; ``family`` overrides the within-plan multiplicity.
+
+    ``deflation`` (trial count and Sharpe variance, from ``resolve_deflation``) is required for
+    plans on ``returns`` metrics, where it feeds the Deflated Sharpe Ratio.
+    """
     if isinstance(data, AggregatedTable):
         keep = [c for c in plan.cross_checks if c not in _NEEDS_ROWS]
         plan = dataclasses.replace(plan, cross_checks=keep)
@@ -317,7 +426,7 @@ def run(plan: AnalysisPlan, data: Data, family: FamilyAdjustment | None = None) 
     sign = 1.0 if plan.higher_is_better else -1.0
     comps: list[ComparisonResult] = []
     for i, cand in enumerate(plan.candidates):
-        out = _analyse(plan, data, cand, alpha_ci, rng, with_cross=True)
+        out = _analyse(plan, data, cand, alpha_ci, rng, with_cross=True, deflation=deflation)
         primary = out.primary
         assert primary.ci_low is not None and primary.ci_high is not None
         lo, hi = sorted((sign * primary.ci_low, sign * primary.ci_high))
@@ -337,6 +446,24 @@ def run(plan: AnalysisPlan, data: Data, family: FamilyAdjustment | None = None) 
                 adjusted_p=float(adj_out[i]) if adj_out is not None else None,
                 alpha_used=alpha_ci,
                 family_size=fam_size,
+                warnings=out.warnings,
             )
         )
-    return Result(experiment=plan.experiment, plan=plan, comparisons=comps, seed=plan.seed)
+    family_checks: list[MethodResult] = []
+    if plan.metric_kind == "returns" and not isinstance(data, AggregatedTable):
+        family_checks = _pbo_over_candidates(plan, data)
+    family_warnings = [
+        f"Probability of Backtest Overfitting {m.estimate:.2f}: the configuration that looked "
+        "best in-sample ranked at or below the median out-of-sample in more than half of the "
+        "splits, so the in-sample ranking does not carry over."
+        for m in family_checks
+        if m.estimate > 0.5
+    ]
+    return Result(
+        experiment=plan.experiment,
+        plan=plan,
+        comparisons=comps,
+        seed=plan.seed,
+        family_checks=family_checks,
+        family_warnings=family_warnings,
+    )

@@ -304,6 +304,19 @@ def make_panel(returns: Mapping[str, Any], times: Any | None = None) -> ReturnsP
     return ReturnsPanel(list(cols), np.column_stack(list(cols.values())), stamps)
 
 
+def _numeric_times(times: np.ndarray) -> np.ndarray:
+    """Numeric time stamps: numbers pass through, ISO dates / datetimes become seconds."""
+    if np.issubdtype(times.dtype, np.number):
+        return times
+    try:
+        return np.asarray(times.astype("datetime64[s]").astype(np.int64))
+    except (ValueError, TypeError) as exc:
+        raise SchemaError(
+            "time stamps must be numbers or ISO dates such as 2024-01-31; "
+            f"could not read {times[0]!r}"
+        ) from exc
+
+
 def returns_table(
     returns: Mapping[str, Any], times: Any | None = None, metric: str = RETURN_METRIC
 ) -> CanonicalTable:
@@ -314,6 +327,7 @@ def returns_table(
     """
     panel = make_panel(returns, times)
     T = len(panel.times)
+    stamps = _numeric_times(panel.times)
     cols: dict[str, list[Any]] = {
         k: [] for k in ("unit_id", "pair_id", "variant", "metric", "value", "time")
     }
@@ -324,7 +338,7 @@ def returns_table(
         cols["variant"] += [name] * T
         cols["metric"] += [metric] * T
         cols["value"] += panel.matrix[:, j].tolist()
-        cols["time"] += panel.times.tolist()
+        cols["time"] += stamps.tolist()
     return build_table(cols, TimeSeries())
 
 

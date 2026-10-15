@@ -146,7 +146,7 @@ Dependence = Iid | Paired | Clustered | CVOverlap | TimeSeries
 | `CVOverlap` | per-fold score | **Nadeau–Bengio corrected resampled t** | 5×2cv paired t; Bayesian correlated t (baycomp) | 1 |
 | `TimeSeries` | loss differential | Diebold–Mariano + HLN correction | stationary/circular block bootstrap | 3 |
 | `TimeSeries` | many models vs benchmark | Hansen SPA, Romano–Wolf StepM, MCS (wrap `arch`) | — | 3/4 |
-| `TimeSeries` | Sharpe ratio | PSR / DSR + block-bootstrap Sharpe CI | PBO-CSCV across the grid | 4 |
+| `TimeSeries` | Sharpe ratio (`metric.kind: returns`) | Block-bootstrap Sharpe-difference CI, with PSR / DSR / MinTRL per strategy and PBO-CSCV across the grid reported alongside (never changing the verdict) | — | 4 (routed in `isbetter run`) |
 | sequential (any) | mean | normal-mixture confidence sequence | fixed-horizon test, shown as the "peeking" foil | 5 |
 
 When a combination is not in the table, the router raises `UnsupportedPlan` and explains what is missing. **It must never silently fall back to a naive test.**

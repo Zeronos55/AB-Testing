@@ -1,0 +1,12 @@
+# Edge or luck? Three strategies against buy-and-hold, with the overfitting guards.
+# 3 variants were tried, so the Deflated Sharpe Ratio is computed for a best-of-3 search.
+# Sharpe ratios are per period (daily here), not annualised: min_effect is in those units.
+experiment: toy_strategies
+adapter: strategy_returns
+data: toy_strategies.csv
+variants: {baseline: buy_and_hold, candidates: [trend_fast, trend_slow, mean_revert]}
+metric: {name: return, kind: returns}
+dependence: {type: timeseries}
+decision: {min_effect: 0.02, alpha: 0.05}
+finance: {n_trials: 3, sr_variance: 0.0016, pbo_blocks: 8}
+seed: 20261010

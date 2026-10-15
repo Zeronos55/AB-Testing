@@ -49,6 +49,7 @@ Phase 4 (trading, "edge or luck?"):
 ```bash
 uv run python case_studies/04_trading_edge/run.py                        # 272 MA rules: naive t vs DSR vs PBO
 uv run python validation/failure_gallery/02_iid_bootstrap_sharpe.py      # iid bootstrap Sharpe CI undercovers
+uv run isbetter run examples/toy_strategies.yaml                         # same checks from a config
 uv run pytest -m slow                                                    # + Sharpe-interval coverage
 ```
 
@@ -61,6 +62,14 @@ combinatorially symmetric CV estimate of the Probability of Backtest Overfitting
 at 16 blocks in about a second). Known limits: the block-bootstrap Sharpe interval stays about
 2-4 points short of nominal coverage at T = 500, and DSR treats the registry's trials as
 independent although neighbouring variants are near-duplicates.
+
+From a config (`adapter: strategy_returns`, `metric: {kind: returns}`, `dependence: timeseries`,
+and a `finance:` block with a trial `registry` or `n_trials` + `sr_variance`), `isbetter run`
+compares each strategy with the baseline (for example buy-and-hold) by a block-bootstrap interval
+for the Sharpe ratio difference, and reports the PSR, DSR and MinTRL of each strategy and the PBO
+of the whole set alongside. They add warnings (DSR below 0.95, PBO above 0.5, a track record
+shorter than MinTRL) but never change the verdict. Sharpe ratios and `min_effect` are per period,
+not annualised, and Holm/BH is refused here because the DSR is what accounts for the search.
 
 Phase 5 (LLM evals and sequential testing):
 

@@ -67,6 +67,7 @@ class ComparisonResult:
     adjusted_p: float | None = None
     alpha_used: float = 0.05
     family_size: int = 0  # hypotheses corrected together; 0 = unknown (older results)
+    warnings: list[str] = field(default_factory=list)  # e.g. DSR below 0.95 (overfitting guards)
 
 
 @dataclass
@@ -77,6 +78,9 @@ class Result:
     seed: int
     package_version: str = __version__
     created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
+    # statistics of the whole set of candidates rather than of one comparison (PBO over a grid)
+    family_checks: list[MethodResult] = field(default_factory=list)
+    family_warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -108,4 +112,6 @@ class Result:
             seed=d["seed"],
             package_version=d["package_version"],
             created_at=d["created_at"],
+            family_checks=[MethodResult(**m) for m in d.get("family_checks", [])],
+            family_warnings=list(d.get("family_warnings", [])),
         )

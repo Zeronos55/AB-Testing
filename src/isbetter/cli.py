@@ -6,7 +6,7 @@ from pathlib import Path
 
 import typer
 
-from isbetter.adapters.load import load_data
+from isbetter.adapters.load import load_data, load_deflation
 from isbetter.core.config import Config, ConfigError, load_config
 from isbetter.core.experiment import build_experiment_plan, run_experiment
 from isbetter.core.plan import UnsupportedPlan, build_plan
@@ -67,7 +67,7 @@ def run(
         plan = build_plan(cfg)
         typer.echo(plan.pretty())  # print the plan before running
         table = load_data(cfg, [plan], config.parent)
-        result = run_plan(plan, table)
+        result = run_plan(plan, table, deflation=load_deflation(cfg, config.parent))
     except (ConfigError, SchemaError, UnsupportedPlan, ValueError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc

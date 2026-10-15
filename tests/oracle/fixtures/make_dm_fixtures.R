@@ -1,7 +1,7 @@
 # Generates tests/oracle/fixtures/dm_r.json: forecast::dm.test reference values.
 # Run from the repo root:  Rscript tests/oracle/fixtures/make_dm_fixtures.R
 # The oracle test (tests/oracle/test_forecasting_oracle.py::test_matches_r_forecast_dm_test)
-# is skipped until this file has been generated and committed.
+# reads it. Committed output was produced with R 4.5.3 and forecast 9.0.2 (conda-forge).
 library(forecast)
 library(jsonlite)
 

@@ -19,7 +19,7 @@
 
 {% endif %}Oriented effect: {{ "%.4g"|format(c.oriented_estimate) }} (CI {{ "%.4g"|format(c.oriented_ci_low) }} to {{ "%.4g"|format(c.oriented_ci_high) }}), minimum effect of interest δ = {{ r.plan.min_effect }}.
 
-**Why this method:** {{ c.primary.rationale }}
+**Why this method:** {{ c.primary.rationale }}{% if c.primary.diagnostics.first_look is defined %}{% if c.primary.diagnostics.first_exclusion_n %} The sequence first excluded 0 at {{ c.primary.diagnostics.first_exclusion_n }} observations{% if c.primary.diagnostics.unused_trailing_observations is defined %} per arm or pair{% endif %}.{% else %} The sequence has not excluded 0 at any look since the first look at {{ c.primary.diagnostics.first_look }}.{% endif %}{% endif %}
 {% for m in c.cross_checks %}
 - *{{ m.method }}:* {{ m.rationale }}{% if m.diagnostics.suggested_block_len is defined %} Block length {{ m.diagnostics.block_len }} ({{ "set in the config" if m.diagnostics.block_len_source == "user" else "suggested by " ~ ("Politis-White" if m.diagnostics.block_len_source == "politis_white" else "the T^(1/3) rule of thumb") }}); automatic suggestion: stationary {{ "%.1f"|format(m.diagnostics.suggested_block_len.stationary) }}, circular {{ "%.1f"|format(m.diagnostics.suggested_block_len.circular) }}.{% endif %}{% endfor %}
 {% endmacro %}

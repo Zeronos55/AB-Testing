@@ -99,7 +99,8 @@ clustered or time-series data; with plug-in variance the sequence is asymptotic 
 observations; with few clusters the CR1
 interval is mildly liberal; the formulas of Miller (2024) and Bowyer et al. (2025) were implemented
 from their published descriptions and checked with independent oracles, not against the papers' own
-numbers, and the paired interval is Tango's rather than that paper's own recipe.
+numbers (the clustered and paired intervals also agree with the third-party `errorbars` package),
+and the paired interval is Tango's rather than that paper's own recipe.
 
 An A/B config (`adapter: ab_table`, or a `metrics:` list) gets an automatic sample-ratio check,
 multiplicity across success metrics only, one-sided non-inferiority guardrails and a ship /

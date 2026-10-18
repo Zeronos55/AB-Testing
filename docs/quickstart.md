@@ -2,7 +2,7 @@
 
 ## Install
 
-From a clone (the package is managed with [uv](https://docs.astral.sh/uv/)):
+The package is not on PyPI yet (version 0.1.0 is prepared for release), so install from a clone. It is managed with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 git clone https://github.com/Zeronos55/AB-Testing

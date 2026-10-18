@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.util
+import subprocess
+import sys
 from pathlib import Path
 
 import typer
@@ -101,6 +104,27 @@ def run(
     for c in result.comparisons:
         typer.echo(f"{c.candidate} vs {c.baseline}: {c.verdict.label}")
     typer.echo("report written to " + ", ".join(str(w) for w in written))
+
+
+@app.command()
+def view(
+    result: Path | None = typer.Argument(
+        None, exists=True, dir_okay=False, help="Result JSON saved with `run --json-out`"
+    ),
+    port: int = typer.Option(8501, help="Port for the local viewer"),
+) -> None:
+    """Open a saved result in the Streamlit viewer (needs the ``app`` extra).
+
+    The viewer reads only the saved JSON: it never loads raw data or reruns a test.
+    """
+    if importlib.util.find_spec("streamlit") is None:
+        typer.echo("error: the viewer needs Streamlit: pip install 'isbetter[app]'", err=True)
+        raise typer.Exit(code=2)
+    page = Path(__file__).parent / "viewer" / "app.py"
+    cmd = [sys.executable, "-m", "streamlit", "run", str(page), "--server.port", str(port)]
+    if result is not None:
+        cmd += ["--", str(result)]
+    raise typer.Exit(code=subprocess.call(cmd))
 
 
 @app.command("plan-size")

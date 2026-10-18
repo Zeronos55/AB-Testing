@@ -1070,6 +1070,7 @@ dev = [
     { name = "ruff" },
     { name = "scikit-learn" },
     { name = "statsmodels" },
+    { name = "streamlit" },
     { name = "types-pyyaml" },
 ]
 
@@ -1112,6 +1113,7 @@ dev = [
     { name = "ruff" },
     { name = "scikit-learn" },
     { name = "statsmodels" },
+    { name = "streamlit" },
     { name = "types-pyyaml" },
 ]
 

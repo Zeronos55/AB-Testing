@@ -69,7 +69,7 @@ uv run --extra docs mkdocs serve        # http://127.0.0.1:8000
 
 ## Status
 
-**Phases 0-5 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval; LLM evals with paired + clustered errors, small-N intervals and confidence sequences for peeking). Try it:
+**Phases 0-6 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval; LLM evals with paired + clustered errors, small-N intervals and confidence sequences for peeking; HTML reports, a Streamlit viewer, a generated calibration table and a docs site with method cards; the 0.1.0 release is prepared but not published). Try it:
 
 Not on PyPI yet: version 0.1.0 is prepared (see `RELEASING.md`), so install from a clone.
 
@@ -185,4 +185,4 @@ Build plan:
 | 3 | Forecasting (M5) | Diebold–Mariano + HLN, MCS/SPA |
 | 4 | Trading | Deflated Sharpe, PBO-CSCV, trial registry |
 | 5 | LLM evals + sequential | Small-N intervals, confidence sequences (built) |
-| 6 | Polish | Docs site, Streamlit viewer, PyPI release |
+| 6 | Polish | Docs site, HTML report, Streamlit viewer, calibration table (built; PyPI release prepared, not published) |

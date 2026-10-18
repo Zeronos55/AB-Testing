@@ -123,3 +123,29 @@ def test_build_hook_assembles_the_gallery_and_case_studies():
     assert set(hooks.CASE_TITLES) == {
         p.name for p in (ROOT / "case_studies").iterdir() if p.is_dir()
     }
+
+
+BLOG = DOCS / "blog" / "failure-gallery.md"
+GALLERY_RESULTS = sorted((ROOT / "validation" / "failure_gallery").glob("*_results.md"))
+
+
+def test_blog_percentages_all_come_from_the_gallery_results():
+    """A figure like 31.4% in the write-up must be a gallery result (0.314) rounded to 0.1%."""
+    results = {
+        f"{float(v) * 100:.1f}%"
+        for f in GALLERY_RESULTS
+        for v in re.findall(r"(?<![\d.])[01]\.\d{3}(?!\d)", f.read_text())
+    }
+    quoted = set(re.findall(r"(?<![\d.])\d{1,3}\.\d%", BLOG.read_text()))
+    assert len(GALLERY_RESULTS) == 6 and len(quoted) > 30
+    assert not quoted - results, f"not in any gallery results table: {sorted(quoted - results)}"
+
+
+def test_blog_figures_and_method_cards_exist():
+    text = BLOG.read_text()
+    for fig in re.findall(r"!\[[^\]]*\]\(\.\./gallery/figures/([^)]+)\)", text):
+        assert (ROOT / "validation" / "failure_gallery" / "figures" / fig).exists(), fig
+    cards = set(re.findall(r"\]\(\.\./methods/([a-z-]+)\.md\)", text))
+    assert {"nadeau-bengio", "cluster-robust", "diebold-mariano", "confidence-sequences"} <= cards
+    for card in cards:
+        assert (DOCS / "methods" / f"{card}.md").exists(), card

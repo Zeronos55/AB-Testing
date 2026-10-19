@@ -60,7 +60,8 @@ Regenerate the table with `uv run python validation/calibration_table.py --readm
 ## Documentation
 
 Method cards (when to use each method, what it assumes, how it fails, what it was checked against,
-references), the verdict logic and the quickstart are plain Markdown in [`docs/`](docs/index.md).
+references), the verdict logic, the quickstart and the [runbook for your own data](docs/own-data.md)
+are plain Markdown in [`docs/`](docs/index.md).
 The failure gallery is in `validation/failure_gallery/` and the case studies in `case_studies/`.
 
 ## Status

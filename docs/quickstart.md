@@ -68,6 +68,11 @@ The interval lies entirely above the minimum effect of interest (0.1), so the ve
 
 An unknown key is an error rather than being ignored, and a bad config gives a readable message.
 
+## Your own data
+
+The [own-data runbook](own-data.md) has a config and the expected columns for each adapter,
+how to choose the dependence, and the usual ways to get a wrong answer.
+
 ## Other commands
 
 ```bash

@@ -24,6 +24,8 @@ These numbers come from simulations where the truth is known; see the [calibrati
 ## Where to go next
 
 - [Quickstart](quickstart.md): install, run an example, read the report.
+- [Using it on your own data](own-data.md): one config per adapter, the columns each expects,
+  and the common ways to get a wrong answer.
 - [Method cards](methods/index.md): one page per method with *when to use it*, *what it assumes*, *how it fails* and *references*.
 - [Case studies](../case_studies/): five worked comparisons (fraud classifiers, an email A/B test, forecasting, trading, an LLM eval).
 - [Blueprint](BLUEPRINT.md): the full design, formulas and the build plan.

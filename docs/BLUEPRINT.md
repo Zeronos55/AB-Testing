@@ -1,8 +1,7 @@
 # Blueprint: `isbetter`, a dependence-aware "Is A really better than B?" toolkit
 
 > Audience: whoever maintains this (originally written for junior engineers, so it explains the statistics). Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
-> Status: **Phases 0–5 built** (see README for current commands). Phase 6 is revised to a local-only scope (see section 7).
-> Scope: **personal tool, run locally, never published.** No PyPI release, hosted docs, hosted app or write-up. Section 0.1 says what that changes.
+> Status: **Phases 0–6 built** in their local-only form (see README for current commands). Scope: **personal tool, run locally, never published**; section 0.1 says what that changes.
 
 ---
 
@@ -34,10 +33,10 @@ This is a tool for the owner's own comparisons, on the owner's own machine. That
 | Was (public toolkit) | Now (personal tool) |
 |---|---|
 | "Validated in public": calibration shown to readers. | **Validated locally.** The calibration tests and failure gallery are how the owner knows the tool can be trusted. Keep them; they are the point. |
-| PyPI release, `[docs]` and `[app]` extras, mkdocs site, Streamlit app, blog post. | Dropped. `pyproject.toml` carries the `Private :: Do Not Upload` classifier so an accidental `uv publish` or `twine upload` is rejected. Install with `uv tool install --editable .` or just `uv run isbetter ...`. |
-| Demo cases written to impress a reader. | Case studies stay as worked examples and regression checks. What matters is running the tool on real data from the owner's own work (see README, "Using it on your own data"). |
+| PyPI release, `[docs]` and `[app]` extras, mkdocs site, Streamlit viewer, blog post, tag-triggered release workflow. | Removed. `pyproject.toml` carries the `Private :: Do Not Upload` classifier so an accidental `uv publish` or `twine upload` is rejected. Install with `uv tool install --editable .` or just `uv run isbetter ...`. |
+| Method cards as a hosted site. | Kept as plain Markdown under `docs/` (readable on disk or on GitHub). No site generator. |
+| Demo cases written to impress a reader. | Case studies stay as worked examples and regression checks. What matters is running the tool on real data from the owner's own work. |
 | Scheduled nightly CI with uploaded figures. | `make check` (what CI runs) and `make calibrate gallery` (the nightly job) run locally. `nightly.yml` is manual-only (`workflow_dispatch`). |
-| Terminal output tuned for a first-time reader. | Unchanged. The plain-English rationale and verdict are still the product; they help the owner a year from now just as much. |
 
 What does **not** change: dependence-first routing, no silent fallback to a naive test, an oracle test for every estimator, seeds recorded in every `Result`, the 8 GB limit, and the small-PR workflow. The reasons for those rules were never about an audience. They were about getting the statistics right.
 
@@ -194,7 +193,7 @@ When a combination is not in the table, the router raises `UnsupportedPlan` and 
 
 ```
 ab-testing/
-├── pyproject.toml  Makefile  README.md  LICENSE (MIT; Private :: Do Not Upload)
+├── pyproject.toml            README.md            LICENSE (MIT)
 ├── docs/BLUEPRINT.md         # this document, committed to the repo
 ├── src/isbetter/
 │   ├── core/       schema.py  dependence.py  plan.py  result.py  config.py
@@ -374,18 +373,16 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 
 ### Phase 6: Local polish (revised: personal use, nothing is published)
 
-The original Phase 6 was distribution: mkdocs site, Streamlit app, PyPI release, blog. Those are **dropped** (section 0.1). What is left is what makes the tool pleasant and safe to use alone:
+The original Phase 6 was distribution. It was built, then cut back to what a single local user needs.
 
-| # | Ticket | DoD |
-|---|---|---|
-| 6.1 | Local task runner and publish guard. *Built:* `Makefile` (`check`, `calibrate`, `gallery`, `cases`, `all`), `Private :: Do Not Upload` classifier, `[app]`/`[docs]` extras removed, `nightly.yml` manual-only. | `make check` matches CI; `uv build` still works. |
-| 6.2 | Single-file HTML report (one self-contained `.html`, figures inlined, opens with a double-click; replaces the Streamlit viewer). | Same content as the Markdown report; no network access needed to view it. |
-| 6.3 | "Using it on your own data" runbook in the README: one worked config per adapter, what columns each adapter expects, the three mistakes that most often give wrong answers (wrong `dependence`, ratio metric as a plain mean, peeking). | Every command in it is run by a test or by `make cases`. |
-| 6.4 | Calibration table in the README, filled from the latest local `make calibrate` run (Type I error and coverage per method, with the known liberal/conservative cases). | Numbers regenerate from one script; no hand-typed rates. |
-| 6.5 | Method notes as plain Markdown under `docs/methods/` (when to use, assumptions, failure modes, one reference each). No site generator. | One page per routing-table row. |
-| 6.6 | Optional: a `results/` convention (git-ignored) so past `Result` JSON files can be listed and compared with `isbetter show`. | Only if wanted; skip otherwise. |
-
-Everything the owner needs to trust a number is already in Phases 0 to 5. Phase 6 starts only on an explicit command, as before.
+| Item | Status |
+|---|---|
+| Single-file HTML report (`report/html.py`, `report: {format: [markdown, html]}`; no scripts or network). | Built, kept. |
+| Calibration table (`validation/calibration_table.py`, regenerated into the README). | Built, kept. |
+| Method notes as plain Markdown under `docs/` (when to use, assumptions, failure modes, references). | Built, kept. The mkdocs site generator, nav and CI docs build were removed. |
+| Local task runner and publish guard: `Makefile`, `Private :: Do Not Upload`, manual-only `nightly.yml`. | Built. |
+| mkdocs site, Streamlit viewer (`isbetter view`), PyPI release workflow and `RELEASING.md`, failure-gallery blog post. | Removed (no tag or upload was ever made). |
+| "Using it on your own data" runbook: one config per adapter, expected columns, the common ways to get a wrong answer (wrong `dependence`, ratio metric as a plain mean, peeking). | Not built. Next, on request. |
 
 ---
 
@@ -402,7 +399,7 @@ The Monte Carlo band for a rejection rate is α ± 2·√(α(1−α)/R). That gi
 
 CI setup:
 - `ci.yml` runs lint, mypy, unit, oracle and property tests on every PR.
-- `nightly.yml` runs the calibration tests and the failure-gallery scripts, and uploads the figures as artifacts. It is manual-only now; the same job runs locally as `make calibrate gallery`.
+- `nightly.yml` runs the calibration tests and the failure-gallery scripts, and uploads the figures as artifacts. It is manual-only; the same job runs locally as `make calibrate gallery`.
 
 ---
 
@@ -442,7 +439,7 @@ report: {format: [markdown, html], include_simulation_check: true}
   - Prefer Poisson(1) weights in float32.
 - **M5:** use one store, or the store × department aggregation; downcast to int16/float32 with categorical IDs.
 - **Calibration:** vectorise across replications by simulating an `R × n` matrix in chunks of R.
-- **HTML report:** built from the saved `Result` JSON only; it never loads raw data.
+- **HTML report:** built from the saved `Result` only; it never loads raw data.
 
 ---
 

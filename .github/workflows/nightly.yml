@@ -16,7 +16,12 @@ jobs:
       - run: uv run python validation/failure_gallery/03_clt_small_n.py
       - run: uv run python validation/failure_gallery/04_peeking.py
       - run: uv run python validation/failure_gallery/05_ignored_clustering.py
+      - run: uv run python validation/calibration_table.py --out calibration_table.md
       - uses: actions/upload-artifact@v4
         with:
           name: failure-gallery-figures
           path: validation/failure_gallery/figures/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calibration-table
+          path: calibration_table.md

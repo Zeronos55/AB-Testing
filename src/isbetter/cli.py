@@ -20,6 +20,7 @@ from isbetter.methods.power import (
     sample_size_means,
     sample_size_proportions,
 )
+from isbetter.report.html import render_experiment_html, render_html
 from isbetter.report.markdown import render_experiment_markdown, render_markdown
 
 app = typer.Typer(add_completion=False, help="Dependence-aware A vs B comparison.")
@@ -30,12 +31,24 @@ def _main() -> None:
     """isbetter: is A really better than B?"""
 
 
-def _run_experiment(cfg: Config, config: Path, out: Path, json_out: Path | None) -> None:
+def _html_path(out: Path, html_out: Path | None) -> Path:
+    return html_out if html_out is not None else out.with_suffix(".html")
+
+
+def _run_experiment(
+    cfg: Config, config: Path, out: Path, html_out: Path | None, json_out: Path | None
+) -> None:
     eplan = build_experiment_plan(cfg)
     typer.echo(eplan.pretty())  # print the plan before running
     data = load_data(cfg, eplan.plans, config.parent)
     result = run_experiment(eplan, data)
-    out.write_text(render_experiment_markdown(result))
+    written = []
+    if "markdown" in cfg.report.format:
+        out.write_text(render_experiment_markdown(result))
+        written.append(out)
+    if "html" in cfg.report.format:
+        _html_path(out, html_out).write_text(render_experiment_html(result))
+        written.append(_html_path(out, html_out))
     if json_out:
         json_out.write_text(result.to_json())
     if result.srm is not None:
@@ -45,24 +58,29 @@ def _run_experiment(cfg: Config, config: Path, out: Path, json_out: Path | None)
         typer.echo(
             f"{d.candidate} vs {eplan.baseline}: {'SHIP' if d.ship else 'DO NOT SHIP'}: {d.reason}"
         )
-    typer.echo(f"report written to {out}")
+    typer.echo("report written to " + ", ".join(str(w) for w in written))
 
 
 @app.command()
 def run(
     config: Path = typer.Argument(..., exists=True, dir_okay=False, help="YAML config"),
     out: Path = typer.Option(Path("REPORT.md"), help="Markdown report path"),
+    html_out: Path | None = typer.Option(
+        None,
+        help="HTML report path (default: --out with .html), written when report.format has html",
+    ),
     json_out: Path | None = typer.Option(None, help="Also write the Result as JSON"),
 ) -> None:
     """Run the analysis described by CONFIG and write a report.
 
     Configs with ``adapter: ab_table`` or a ``metrics`` list run as A/B experiments: automatic
     sample-ratio check, multiplicity across success metrics, guardrails and a ship decision.
+    The config's ``report.format`` picks the outputs: ``markdown`` (default) and/or ``html``.
     """
     try:
         cfg = load_config(config)
         if cfg.is_experiment:
-            _run_experiment(cfg, config, out, json_out)
+            _run_experiment(cfg, config, out, html_out, json_out)
             return
         plan = build_plan(cfg)
         typer.echo(plan.pretty())  # print the plan before running
@@ -71,12 +89,18 @@ def run(
     except (ConfigError, SchemaError, UnsupportedPlan, ValueError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
-    out.write_text(render_markdown(result))
+    written = []
+    if "markdown" in cfg.report.format:
+        out.write_text(render_markdown(result))
+        written.append(out)
+    if "html" in cfg.report.format:
+        _html_path(out, html_out).write_text(render_html(result))
+        written.append(_html_path(out, html_out))
     if json_out:
         json_out.write_text(result.to_json())
     for c in result.comparisons:
         typer.echo(f"{c.candidate} vs {c.baseline}: {c.verdict.label}")
-    typer.echo(f"report written to {out}")
+    typer.echo("report written to " + ", ".join(str(w) for w in written))
 
 
 @app.command("plan-size")

@@ -182,3 +182,9 @@ def test_interval_svg_handles_infinite_and_nan_limits():
     assert "inf" not in drawing(open_ended) and "nan" not in drawing(open_ended)
     assert interval_svg(math.nan, 0.0, 1.0, 0.1) == ""
     assert "nan" not in drawing(interval_svg(0.5, math.nan, math.nan, 0.1))
+
+
+def test_standalone_svg_carries_its_own_namespace_and_style():
+    svg = interval_svg(0.5, 0.2, 0.8, 0.1, standalone=True)
+    assert 'xmlns="http://www.w3.org/2000/svg"' in svg and "<style>" in svg
+    assert "<style>" not in interval_svg(0.5, 0.2, 0.8, 0.1)  # the report's CSS styles it instead

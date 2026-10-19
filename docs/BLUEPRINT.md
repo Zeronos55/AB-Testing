@@ -361,7 +361,7 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 
 - mkdocs site with **method cards**: when to use, assumptions, failure modes, references.
 - HTML report. *Built:* `report/html.py` + `report/templates/*.html.j2`. `report: {format: [markdown, html]}` now writes `REPORT.html` beside the Markdown (`--html-out` to move it). One self-contained file (inline CSS and SVG, no scripts or network, light and dark): the same plan, verdict, tables and rationale as the Markdown, plus a verdict badge and an interval figure per comparison showing the CI against zero and the ±δ band. A/B experiments get the SRM table and ship/no-ship badges. Escaped with Jinja autoescape; tests check well-formedness and that every example config renders.
-- Streamlit viewer that reads only saved `Result` JSON.
+- Streamlit viewer that reads only saved `Result` JSON. *Built:* `isbetter view result.json` (`pip install 'isbetter[app]'`) opens `viewer/app.py`; `viewer/model.py` loads a saved `Result` or `ExperimentResult` (from `isbetter run --json-out`) and shapes it into plain rows without Streamlit. The page shows the SRM check and ship decisions for experiments, a table of all comparisons, and per comparison the verdict, warnings, effect and CI, the interval figure, primary and cross-check methods with rationale, diagnostics, PBO-style family checks, and an HTML-report download. A test asserts importing the model loads no adapters, polars, DuckDB or scikit-learn; the page is tested with Streamlit's `AppTest` and was also checked in a real browser. Built on top of the HTML report (it reuses its renderer and figure).
 - PyPI release (`isbetter` 0.1.0).
 - README with the calibration table.
 - A blog write-up of the failure gallery.

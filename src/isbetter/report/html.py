@@ -36,11 +36,24 @@ def _finite(*xs: float) -> list[float]:
     return [x for x in xs if math.isfinite(x)]
 
 
-def interval_svg(estimate: float, low: float, high: float, delta: float) -> str:
-    """Inline SVG: oriented effect with its CI, the zero line and the band +-delta.
+# the figure's colours when it is used as an image, outside the report's stylesheet; mid-tones
+# that read on both light and dark backgrounds
+_STANDALONE_STYLE = (
+    "<style>.band{fill:#2ea043;fill-opacity:.25}"
+    ".zero{stroke:#888;stroke-width:1;stroke-dasharray:4 3}"
+    ".ci{stroke:#5b8def;stroke-width:2.5}.est{fill:#5b8def}text{fill:#888;font-size:11px}</style>"
+)
 
-    Positive means the candidate wins. Infinite or NaN limits are drawn as arrows running off
-    the axis; if the estimate itself is not finite there is nothing to draw.
+
+def interval_svg(
+    estimate: float, low: float, high: float, delta: float, standalone: bool = False
+) -> str:
+    """SVG: oriented effect with its CI, the zero line and the band +-delta.
+
+    Positive means the candidate wins. A limit that is infinite or NaN is drawn running off
+    the axis; if the estimate itself is not finite there is nothing to draw. By default the
+    SVG is styled by the report's stylesheet; ``standalone`` embeds its own style (and the
+    namespace) so it can be used as an image.
     """
     if not math.isfinite(estimate):
         return ""
@@ -54,11 +67,14 @@ def interval_svg(estimate: float, low: float, high: float, delta: float) -> str:
         return _PAD + (v - lo_v) / (hi_v - lo_v) * (_W - 2 * _PAD)
 
     y = 34
+    ns = ' xmlns="http://www.w3.org/2000/svg"' if standalone else ""
     parts = [
-        f'<svg class="interval" viewBox="0 0 {_W} {_H}" role="img" '
+        f'<svg{ns} class="interval" viewBox="0 0 {_W} {_H}" role="img" '
         f'aria-label="Effect {_fmt(estimate)} with interval {_fmt(low)} to {_fmt(high)}; '
         f'equivalence band plus or minus {_fmt(delta)}">'
     ]
+    if standalone:
+        parts.append(_STANDALONE_STYLE)
     if delta > 0:
         parts.append(
             f'<rect class="band" x="{x(-delta):.1f}" y="10" width="{x(delta) - x(-delta):.1f}" '

@@ -9,6 +9,8 @@ description = "Dependence-aware A vs B comparison toolkit: valid test, three-way
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+# Personal, unpublished tool: this classifier makes PyPI (and compatible indexes) reject an upload.
+classifiers = ["Private :: Do Not Upload"]
 dependencies = [
   "numpy>=1.26",
   "scipy>=1.11",
@@ -24,8 +26,6 @@ ml = ["scikit-learn", "lightgbm"]
 forecast = ["statsmodels", "statsforecast", "arch"]
 finance = ["arch"]
 bayes = ["baycomp"]
-app = ["streamlit"]
-docs = ["mkdocs-material"]
 
 [dependency-groups]
 dev = [

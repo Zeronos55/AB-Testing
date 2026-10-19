@@ -2,7 +2,7 @@
 
 **Is A really better than B?** You tell it how your data are dependent, and it gives you a valid statistical test, a three-way verdict (better / equivalent / inconclusive) and proof that the test is calibrated.
 
-`isbetter` is planned as a cross-domain comparison toolkit. It treats several kinds of comparison as the same problem: ML model comparisons, A/B experiments, forecast backtests, trading strategies and LLM evals. In each case you have paired or unpaired scores with a known dependence structure (`iid`, `paired`, `clustered`, `cv_overlap`, `timeseries`), and that structure determines which test is valid.
+`isbetter` is a personal, local, unpublished cross-domain comparison toolkit (no PyPI release, docs site or hosted app; see "Scope" in the blueprint). It treats several kinds of comparison as the same problem: ML model comparisons, A/B experiments, forecast backtests, trading strategies and LLM evals. In each case you have paired or unpaired scores with a known dependence structure (`iid`, `paired`, `clustered`, `cv_overlap`, `timeseries`), and that structure determines which test is valid.
 
 ## Status
 
@@ -11,8 +11,11 @@
 ```bash
 uv sync
 uv run isbetter run examples/toy_paired.yaml
-uv run pytest            # fast tests
-uv run pytest -m slow    # calibration (10,000 replications)
+make check               # ruff + mypy + fast tests (what CI runs)
+make calibrate           # slow calibration tests (10,000 replications)
+make gallery             # all failure-gallery scripts
+make cases               # all five case studies (synthetic stand-ins)
+uv tool install --editable .   # optional: puts `isbetter` on your PATH, still local
 uv run python validation/failure_gallery/01_naive_cv_ttest.py   # naive CV t-test fails
 uv run python case_studies/01_fraud_classifiers/run.py          # Phase 1 case study
 ```
@@ -120,4 +123,4 @@ Build plan:
 | 3 | Forecasting (M5) | Diebold–Mariano + HLN, MCS/SPA |
 | 4 | Trading | Deflated Sharpe, PBO-CSCV, trial registry |
 | 5 | LLM evals + sequential | Small-N intervals, confidence sequences (built) |
-| 6 | Polish | Docs site, Streamlit viewer, PyPI release |
+| 6 | Local polish | Single-file HTML report, own-data runbook, calibration table (no docs site, Streamlit or PyPI) |

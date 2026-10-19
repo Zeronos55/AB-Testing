@@ -9,4 +9,6 @@ dist/
 *.egg-info/
 data/
 /REPORT.md
+/REPORT.html
+/site/
 case_studies/*/out/

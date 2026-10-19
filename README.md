@@ -57,6 +57,16 @@ A calibrated method falls outside its Monte Carlo band about 1 time in 20, so a 
 runs (`pytest -m slow`) are the check. The known limits are written down in the sections below.
 Regenerate the table with `uv run python validation/calibration_table.py --readme`.
 
+## Documentation
+
+Method cards (when to use each method, what it assumes, how it fails, what it was checked against,
+references), the verdict logic, the failure gallery and the case studies are a
+[mkdocs](https://www.mkdocs.org/) site in `docs/`:
+
+```bash
+uv run --extra docs mkdocs serve        # http://127.0.0.1:8000
+```
+
 ## Status
 
 **Phases 0-5 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval; LLM evals with paired + clustered errors, small-N intervals and confidence sequences for peeking). Try it:

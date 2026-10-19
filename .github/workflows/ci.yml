@@ -15,3 +15,9 @@ jobs:
       - run: uv run ruff check .
       - run: uv run mypy src/isbetter/core src/isbetter/methods src/isbetter/decision
       - run: uv run pytest -m "not slow"
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv run --extra docs mkdocs build --strict

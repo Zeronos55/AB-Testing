@@ -1,0 +1,72 @@
+site_name: isbetter
+site_description: Is A really better than B? A dependence-aware comparison toolkit with a three-way verdict and a calibration proof.
+repo_url: https://github.com/Zeronos55/AB-Testing
+edit_uri: edit/main/docs/
+docs_dir: docs
+exclude_docs: |
+  _hooks.py
+  __pycache__/
+hooks:
+  - docs/_hooks.py
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+  features: [navigation.sections, navigation.top, content.code.copy, toc.follow]
+markdown_extensions:
+  - admonition
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.highlight
+  - pymdownx.superfences
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Concepts:
+      - Declaring dependence: concepts/dependence.md
+      - The verdict: concepts/verdict.md
+      - Reports and the viewer: concepts/reports.md
+  - Method cards:
+      - methods/index.md
+      - Independent or paired means:
+          - methods/welch-t.md
+          - methods/paired-t.md
+          - methods/bootstrap-permutation.md
+      - A/B experiments:
+          - methods/two-proportions.md
+          - methods/cuped.md
+          - methods/delta-method.md
+          - methods/srm.md
+          - methods/multiplicity.md
+          - methods/guardrails.md
+          - methods/power.md
+      - Clusters, cross-validation, small N:
+          - methods/cluster-robust.md
+          - methods/nadeau-bengio.md
+          - methods/mcnemar.md
+          - methods/small-n.md
+      - Time series and finance:
+          - methods/diebold-mariano.md
+          - methods/block-bootstrap.md
+          - methods/spa-stepm-mcs.md
+          - methods/sharpe-psr-dsr.md
+          - methods/pbo.md
+      - Sequential:
+          - methods/confidence-sequences.md
+  - Evidence:
+      - Calibration: calibration.md
+      - Failure gallery: gallery.md
+      - Case studies:
+          - case-studies.md
+          - case-studies/01_fraud_classifiers.md
+          - case-studies/02_ab_hillstrom_criteo.md
+          - case-studies/03_forecasting_m5.md
+          - case-studies/04_trading_edge.md
+          - case-studies/05_llm_eval.md
+  - Design:
+      - Blueprint: BLUEPRINT.md

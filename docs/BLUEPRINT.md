@@ -1,7 +1,7 @@
 # Blueprint: `isbetter`, a dependence-aware "Is A really better than B?" toolkit
 
 > Audience: junior engineers and interns joining the build. Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
-> Status: **Phases 0–5 built** (see README for current commands). Phase 6 is still planned.
+> Status: **Phases 0–6 built** (see README for current commands). The 0.1.0 release is prepared but not published (`RELEASING.md`).
 
 ---
 
@@ -364,7 +364,7 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 - Streamlit viewer that reads only saved `Result` JSON. *Built:* `isbetter view result.json` (`pip install 'isbetter[app]'`) opens `viewer/app.py`; `viewer/model.py` loads a saved `Result` or `ExperimentResult` (from `isbetter run --json-out`) and shapes it into plain rows without Streamlit. The page shows the SRM check and ship decisions for experiments, a table of all comparisons, and per comparison the verdict, warnings, effect and CI, the interval figure, primary and cross-check methods with rationale, diagnostics, PBO-style family checks, and an HTML-report download. A test asserts importing the model loads no adapters, polars, DuckDB or scikit-learn; the page is tested with Streamlit's `AppTest` and was also checked in a real browser. Built on top of the HTML report (it reuses its renderer and figure).
 - PyPI release (`isbetter` 0.1.0). *Prepared, not published:* version 0.1.0 (a test keeps `pyproject.toml` and `__version__` equal), package metadata (SPDX licence, classifiers, URLs), a restricted sdist, `CHANGELOG.md`, `RELEASING.md` and `.github/workflows/release.yml` (tag `v*`: lint, types and tests, tag-matches-version check, build, `twine check`, a clean-venv smoke test of the wheel running the CLI, then trusted publishing through a protected `pypi` environment). Checked locally: both artifacts build, `twine check` passes, and the wheel installs and runs with only its base dependencies. Uploading needs the maintainer's PyPI account (steps in `RELEASING.md`).
 - README with the calibration table. *Built:* `validation/calibration_table.py` reruns 25 simulated rows (scenario x method) from `simulate/calibration.py` (the slow tests' scenarios and seeds) plus exact small-N coverage, and writes `validation/calibration_table.md` (with Monte Carlo bands) and a compact table in the README's marked block (`--readme`). Each recommended method sits beside the naive method it replaces; the *reading* of every row (calibrated, slightly liberal, inflated, conservative, under-covers) is computed from its band, not written by hand. Nightly regenerates it and uploads it. A fast test checks the README table against the committed full table.
-- A blog write-up of the failure gallery.
+- A blog write-up of the failure gallery. *Built:* `docs/blog/failure-gallery.md` (in the site's nav): the six failures with the gallery's own numbers, two of its figures, what the fixes cost, what the simulations do not show, and how to reproduce. A fast test requires every percentage quoted in the post to be a gallery result rounded to 0.1%, so the post cannot drift from the scripts; all six scripts were rerun and reproduce the committed tables and figures byte for byte. Not published anywhere outside the repository.
 
 ---
 

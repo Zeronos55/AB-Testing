@@ -9,7 +9,7 @@ Most wrong answers to "is A better than B?" are not arithmetic mistakes. They co
 | 10 repeats of 10-fold CV scores | independent scores | rejects a true null 57% of the time at a nominal 5% |
 | Many sessions per user | independent rows | 31% false positives with 10 sessions per user |
 | A multi-step forecast | uncorrelated loss differences | 17% false positives at horizon 3 |
-| A dashboard checked every day | one look at a fixed sample size | 49% false positives when read after every observation |
+| A dashboard checked every day | one look at a fixed sample size | nearly half (46 to 49% across our runs) false positives when read after every observation |
 | 30 to 200 eval items | the central limit theorem | the 95% interval covers 78% at accuracy 0.95, N = 30 |
 
 These numbers come from simulations where the truth is known; see the [calibration table](calibration.md) and the [failure gallery](gallery.md).

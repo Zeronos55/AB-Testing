@@ -68,5 +68,7 @@ nav:
           - case-studies/03_forecasting_m5.md
           - case-studies/04_trading_edge.md
           - case-studies/05_llm_eval.md
+  - Write-ups:
+      - Six ways to fool yourself: blog/failure-gallery.md
   - Design:
       - Blueprint: BLUEPRINT.md

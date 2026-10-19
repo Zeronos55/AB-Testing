@@ -36,7 +36,7 @@ from isbetter.methods.cv import nadeau_bengio, five_by_two_cv
 ## Checked against
 
 - A hand-computed fixture, and `mlxtend.evaluate.paired_ttest_5x2cv` on the iris example for the 5x2cv test.
-- A calibration test: Nadeau-Bengio stays at the nominal rate where the naive test is inflated. See the [calibration table](../calibration.md) and [failure gallery #1](../gallery.md).
+- A calibration test: Nadeau-Bengio stays at the nominal rate where the naive test is inflated. See the [calibration table](../calibration.md) and [failure gallery #1](../../validation/failure_gallery/).
 
 ## References
 

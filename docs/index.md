@@ -12,7 +12,7 @@ Most wrong answers to "is A better than B?" are not arithmetic mistakes. They co
 | A dashboard checked every day | one look at a fixed sample size | nearly half (46 to 49% across our runs) false positives when read after every observation |
 | 30 to 200 eval items | the central limit theorem | the 95% interval covers 78% at accuracy 0.95, N = 30 |
 
-These numbers come from simulations where the truth is known; see the [calibration table](calibration.md) and the [failure gallery](gallery.md).
+These numbers come from simulations where the truth is known; see the [calibration table](calibration.md) and the [failure gallery](../validation/failure_gallery/).
 
 ## The idea
 
@@ -25,8 +25,7 @@ These numbers come from simulations where the truth is known; see the [calibrati
 
 - [Quickstart](quickstart.md): install, run an example, read the report.
 - [Method cards](methods/index.md): one page per method with *when to use it*, *what it assumes*, *how it fails* and *references*.
-- [Case studies](case-studies.md): five worked comparisons (fraud classifiers, an email A/B test, forecasting, trading, an LLM eval).
+- [Case studies](../case_studies/): five worked comparisons (fraud classifiers, an email A/B test, forecasting, trading, an LLM eval).
 - [Blueprint](BLUEPRINT.md): the full design, formulas and the build plan.
 
-!!! note "Status"
-    The case studies run on synthetic stand-in data with the structure of the real datasets; each report says so.
+> **Status.** The case studies run on synthetic stand-in data with the structure of the real datasets; each report says so.

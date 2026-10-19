@@ -33,7 +33,7 @@ from isbetter.methods.proportions import wilson_interval, jeffreys_interval
 
 - The restricted maximum-likelihood estimate against a numeric optimiser; the score statistic at delta = 0 equals McNemar's uncorrected chi-square (statsmodels); the endpoints solve the score equation; zero is inside the interval exactly when McNemar does not reject.
 - SciPy's exact interval for Clopper-Pearson; a Dirichlet-posterior cross-check.
-- Single-arm coverage is computed exactly (the count is binomial), with no simulation: [failure gallery #3](../gallery.md).
+- Single-arm coverage is computed exactly (the count is binomial), with no simulation: [failure gallery #3](../../validation/failure_gallery/).
 - The third-party `errorbars` package agrees on Wilson, McNemar and the paired interval.
 
 ## References

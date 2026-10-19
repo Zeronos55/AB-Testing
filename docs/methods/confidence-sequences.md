@@ -38,7 +38,7 @@ cs = confidence_sequence_mean(x, n_target=1000)
 ## Checked against
 
 - Numerical integration of the mixture martingale over lambda; its expectation of 1 under the truth; the interval edge being exactly where the martingale equals 1/alpha; the optimal rho against brute force and the closed form of Howard et al. (the papers' published numbers could not be fetched where this was built).
-- A calibration test: read after every observation from 20 to 2,000 per arm, the sequence's false-positive rate stays below 5% while the fixed-horizon test stopped at its first p < 0.05 rejects in nearly half of the runs. See the [calibration table](../calibration.md) and [failure gallery #4](../gallery.md).
+- A calibration test: read after every observation from 20 to 2,000 per arm, the sequence's false-positive rate stays below 5% while the fixed-horizon test stopped at its first p < 0.05 rejects in nearly half of the runs. See the [calibration table](../calibration.md) and [failure gallery #4](../../validation/failure_gallery/).
 
 ## References
 

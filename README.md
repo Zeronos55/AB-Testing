@@ -60,24 +60,22 @@ Regenerate the table with `uv run python validation/calibration_table.py --readm
 ## Documentation
 
 Method cards (when to use each method, what it assumes, how it fails, what it was checked against,
-references), the verdict logic, the failure gallery and the case studies are a
-[mkdocs](https://www.mkdocs.org/) site in `docs/`:
-
-```bash
-uv run --extra docs mkdocs serve        # http://127.0.0.1:8000
-```
+references), the verdict logic and the quickstart are plain Markdown in [`docs/`](docs/index.md).
+The failure gallery is in `validation/failure_gallery/` and the case studies in `case_studies/`.
 
 ## Status
 
 **Phases 0-6 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval; LLM evals with paired + clustered errors, small-N intervals and confidence sequences for peeking; HTML reports, a Streamlit viewer, a generated calibration table and a docs site with method cards; the 0.1.0 release is prepared but not published). Try it:
 
-Not on PyPI yet: version 0.1.0 is prepared (see `RELEASING.md`), so install from a clone.
+Personal, local and unpublished: install from a clone (`uv sync`, or `uv tool install --editable .`). The package is marked `Private :: Do Not Upload`.
 
 ```bash
 uv sync
 uv run isbetter run examples/toy_paired.yaml
-uv run pytest            # fast tests
-uv run pytest -m slow    # calibration (10,000 replications)
+make check               # ruff + mypy + fast tests (what CI runs)
+make calibrate           # slow calibration tests (10,000 replications)
+make gallery             # all failure-gallery scripts
+make cases               # all five case studies (synthetic stand-ins)
 uv run python validation/failure_gallery/01_naive_cv_ttest.py   # naive CV t-test fails
 uv run python case_studies/01_fraud_classifiers/run.py          # Phase 1 case study
 ```
@@ -185,4 +183,4 @@ Build plan:
 | 3 | Forecasting (M5) | Diebold–Mariano + HLN, MCS/SPA |
 | 4 | Trading | Deflated Sharpe, PBO-CSCV, trial registry |
 | 5 | LLM evals + sequential | Small-N intervals, confidence sequences (built) |
-| 6 | Polish | Docs site, HTML report, Streamlit viewer, calibration table (built; PyPI release prepared, not published) |
+| 6 | Local polish | HTML report, calibration table, Markdown method notes, Makefile (built). No docs site, Streamlit viewer or PyPI release. |

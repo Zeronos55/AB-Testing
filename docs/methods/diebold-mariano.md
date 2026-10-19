@@ -18,7 +18,7 @@ Two forecasters scored on the same targets, one loss per forecast origin. The nu
 
 ## How it fails
 
-- **Ignoring the autocorrelation** (a plain paired t-test on losses) over-rejects as h grows: 17% at h = 3 and 35% at h = 7 for a nominal 5%. See [failure gallery #2b](../gallery.md).
+- **Ignoring the autocorrelation** (a plain paired t-test on losses) over-rejects as h grows: 17% at h = 3 and 35% at h = 7 for a nominal 5%. See [failure gallery #2b](../../validation/failure_gallery/).
 - **HLN is not exact**: with few origins it stays mildly liberal at long horizons (about 6 to 7% at h = 7 to 10 with T = 100).
 - **Nested models**: Diebold-Mariano is not valid when one model nests the other (Clark-West is for that case).
 - **The loss function is a choice** that can reverse the ranking; it should reflect how the forecast is used.

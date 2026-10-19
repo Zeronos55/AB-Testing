@@ -15,7 +15,7 @@ A randomised A/B test on a 0/1 outcome per user. The z-test reports the differen
 
 - **Rows are impressions, not users**: if one user contributes several rows the units are not independent. Aggregate to users or declare `clustered`. The Criteo case study lists this as an open question for the real data.
 - **Rare events with small counts**: the z interval is unreliable; read the Fisher cross-check and the Newcombe interval.
-- **Peeking** at the p-value while the test runs inflates false positives: see the [failure gallery](../gallery.md) and [confidence sequences](confidence-sequences.md).
+- **Peeking** at the p-value while the test runs inflates false positives: see the [failure gallery](../../validation/failure_gallery/) and [confidence sequences](confidence-sequences.md).
 
 ## Use it
 

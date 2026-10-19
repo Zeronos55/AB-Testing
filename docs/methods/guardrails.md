@@ -35,4 +35,4 @@ Each candidate gets a SHIP or DO NOT SHIP with the reason, and a per-metric tabl
 
 ## References
 
-- The case study [A/B test: email campaign](../case-studies/02_ab_hillstrom_criteo.md) works through a decision with two success metrics and a spend guardrail.
+- The case study [A/B test: email campaign](../../case_studies/02_ab_hillstrom_criteo/REPORT.md) works through a decision with two success metrics and a spend guardrail.

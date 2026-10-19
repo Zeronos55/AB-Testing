@@ -14,7 +14,9 @@ keywords = [
   "statistics", "ab-testing", "model-comparison", "hypothesis-testing", "cross-validation",
   "diebold-mariano", "deflated-sharpe", "confidence-sequences", "llm-evaluation",
 ]
+# Personal, unpublished tool: the first classifier makes PyPI (and compatible indexes) reject an upload.
 classifiers = [
+  "Private :: Do Not Upload",
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
@@ -45,8 +47,6 @@ ml = ["scikit-learn", "lightgbm"]
 forecast = ["statsmodels", "statsforecast", "arch"]
 finance = ["arch"]
 bayes = ["baycomp"]
-app = ["streamlit"]
-docs = ["mkdocs-material"]
 
 [dependency-groups]
 dev = [
@@ -66,7 +66,6 @@ dev = [
     "polars",
     "arch",
     "errorbars>=0.2.4",
-    "streamlit",
 ]
 
 [project.scripts]

@@ -33,4 +33,4 @@ uv run pytest -m slow                                      # the calibration tes
   block-bootstrap Sharpe interval at T = 500), the table reports it as it came out and the
   [method card](methods/index.md) says why.
 
-See also the [failure gallery](gallery.md), which shows the same failures as figures.
+See also the [failure gallery](../validation/failure_gallery/), which shows the same failures as figures.

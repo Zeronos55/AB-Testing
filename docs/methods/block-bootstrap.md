@@ -15,7 +15,7 @@ A resampling interval for serially dependent data. Single observations are resam
 
 - **Short series**: the block bootstrap is better than the iid one, not exact. For a Sharpe ratio at T = 500 it covers about 91 to 93% at nominal 95%.
 - **Long memory or trends** break the weak-dependence assumption.
-- **The iid bootstrap on dependent data** gives intervals that are too short: see [failure gallery #2](../gallery.md).
+- **The iid bootstrap on dependent data** gives intervals that are too short: see [failure gallery #2](../../validation/failure_gallery/).
 
 ## Use it
 

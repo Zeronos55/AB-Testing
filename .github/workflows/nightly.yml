@@ -1,7 +1,6 @@
 name: nightly-calibration
+# Manual only: this is a personal project, so no scheduled runs. Locally: make calibrate gallery
 on:
-  schedule:
-    - cron: "17 3 * * *"
   workflow_dispatch:
 jobs:
   calibration:

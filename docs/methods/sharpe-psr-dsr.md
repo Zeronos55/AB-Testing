@@ -21,7 +21,7 @@ Is a strategy's edge real or luck? The primary result is a block-bootstrap inter
 
 - **Treating the trials as independent**: DSR does, although neighbouring variants (two moving averages with nearby windows) are near-duplicates, which overstates the number of independent trials.
 - **The closed-form expected maximum Sharpe is an approximation**: about 8% low at N = 2 and 0.5 to 3% high for N >= 3.
-- **The block-bootstrap interval stays 2 to 4 points short of nominal coverage** at T = 500, and the iid bootstrap is worse: [failure gallery #2](../gallery.md).
+- **The block-bootstrap interval stays 2 to 4 points short of nominal coverage** at T = 500, and the iid bootstrap is worse: [failure gallery #2](../../validation/failure_gallery/).
 - **A survivor-only registry**: logging only the winners makes DSR and PBO say nothing about the search.
 
 ## Use it

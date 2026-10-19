@@ -1,7 +1,7 @@
 # Blueprint: `isbetter`, a dependence-aware "Is A really better than B?" toolkit
 
-> Audience: junior engineers and interns joining the build. Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
-> Status: **Phases 0–6 built** (see README for current commands). The 0.1.0 release is prepared but not published (`RELEASING.md`).
+> Audience: whoever maintains this (originally written for junior engineers, so it explains the statistics). Read sections 1–5 before writing any code; after that, each phase in section 7 can be read on its own.
+> Status: **Phases 0–6 built** in their local-only form (see README for current commands). Scope: **personal tool, run locally, never published**; section 0.1 says what that changes.
 
 ---
 
@@ -22,9 +22,25 @@ None of them treats **the dependence structure of the data** as the thing the us
 The three pillars:
 1. **Dependence first.** Every analysis starts from a declared unit of independence: `iid`, `paired`, `clustered`, `cv_overlap` or `timeseries`. That declaration decides which method runs.
 2. **Decision, not just a p-value.** The output is one of: better, equivalent, inconclusive or worse. The user supplies a minimum effect of interest δ, and the tool estimates how much more data is needed (`n_needed`).
-3. **Validated in public.** A simulation harness and a "failure gallery" show that each method keeps its nominal Type I error and coverage, and that the naive alternative does not.
+3. **Validated locally.** A simulation harness and a "failure gallery" show that each method keeps its nominal Type I error and coverage, and that the naive alternative does not.
 
 Hard constraint: **everything must run on an 8 GB laptop.**
+
+### 0.1 Scope: personal, local, unpublished
+
+This is a tool for the owner's own comparisons, on the owner's own machine. That changes the plan in these ways:
+
+| Was (public toolkit) | Now (personal tool) |
+|---|---|
+| "Validated in public": calibration shown to readers. | **Validated locally.** The calibration tests and failure gallery are how the owner knows the tool can be trusted. Keep them; they are the point. |
+| PyPI release, `[docs]` and `[app]` extras, mkdocs site, Streamlit viewer, blog post, tag-triggered release workflow. | Removed. `pyproject.toml` carries the `Private :: Do Not Upload` classifier so an accidental `uv publish` or `twine upload` is rejected. Install with `uv tool install --editable .` or just `uv run isbetter ...`. |
+| Method cards as a hosted site. | Kept as plain Markdown under `docs/` (readable on disk or on GitHub). No site generator. |
+| Demo cases written to impress a reader. | Case studies stay as worked examples and regression checks. What matters is running the tool on real data from the owner's own work. |
+| Scheduled nightly CI with uploaded figures. | `make check` (what CI runs) and `make calibrate gallery` (the nightly job) run locally. `nightly.yml` is manual-only (`workflow_dispatch`). |
+
+What does **not** change: dependence-first routing, no silent fallback to a naive test, an oracle test for every estimator, seeds recorded in every `Result`, the 8 GB limit, and the small-PR workflow. The reasons for those rules were never about an audience. They were about getting the statistics right.
+
+The `LICENSE` file is still MIT. That is harmless while the repo is private. Whether to swap it for a plain copyright line is the owner's call, not an engineering one.
 
 ---
 
@@ -75,7 +91,7 @@ Hard constraint: **everything must run on an 8 GB laptop.**
 | Reports | `jinja2` + `matplotlib` | Static Markdown/HTML; no server needed. |
 | Tests | `pytest`, `hypothesis`, `pytest-xdist` | Unit, property and parallel calibration tests. |
 | Quality | `ruff` (lint + format), `mypy --strict` on `core/`, `methods/` and `decision/` | Catches bugs early. |
-| Optional extras | `[ab]` duckdb · `[ml]` scikit-learn, lightgbm · `[forecast]` statsmodels, statsforecast, arch · `[finance]` arch · `[bayes]` baycomp · `[app]` streamlit · `[docs]` mkdocs-material | Keeps the base install light. |
+| Optional extras | `[ab]` duckdb · `[ml]` scikit-learn, lightgbm · `[forecast]` statsmodels, statsforecast, arch · `[finance]` arch · `[bayes]` baycomp | Keeps the base install light. |
 
 ---
 
@@ -91,8 +107,7 @@ Hard constraint: **everything must run on an 8 GB laptop.**
                                                       ▲                       (decision/)
                                      YAML config ─────┘                              │
                                                                                      ▼
-                                                                Result (JSON) ──► Report (MD/HTML)
-                                                                                 └─► Streamlit viewer
+                                                                Result (JSON) ──► Report (Markdown, one HTML file)
 ```
 
 ### 4.2 The canonical data contract (`core/schema.py`)
@@ -189,8 +204,7 @@ ab-testing/
 │   ├── adapters/   sklearn_cv.py  ab_table.py  forecast_backtest.py  strategy_returns.py  llm_eval.py
 │   ├── simulate/   dgp.py  calibration.py
 │   ├── report/     markdown.py  html.py  plots.py  templates/
-│   ├── cli.py
-│   └── app/streamlit_app.py
+│   └── cli.py
 ├── tests/  unit/  oracle/ (+ fixtures/)  property/  calibration/  (marked @slow)
 ├── case_studies/  01_fraud_classifiers/  02_ab_hillstrom_criteo/  03_forecasting_m5/
 │                  04_trading_edge/  05_llm_eval/
@@ -299,7 +313,7 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 
 ### Phase 1: ML case study, fraud classifiers (ULB credit-card fraud, 284,807 rows)
 
-**Goal:** the demo a recruiter understands immediately. Logistic regression vs LightGBM vs random forest, compared on PR-AUC (not accuracy, because only 0.172% of rows are fraud).
+**Goal:** the clearest worked example of the thesis. Logistic regression vs LightGBM vs random forest, compared on PR-AUC (not accuracy, because only 0.172% of rows are fraud).
 
 | # | Ticket | DoD |
 |---|---|---|
@@ -357,14 +371,18 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 | 5.4 | `methods/sequential.py`: normal-mixture confidence sequence | Under continuous peeking, the false positive rate stays ≤ α. *Built:* `methods/sequential.py`: `confidence_sequence_mean` / `confidence_sequence_diff` (two arms, equal counts) return the interval and an always-valid p-value at every look; `optimal_rho`, `sequential_mean_result`. The boundary is Robbins' normal mixture, `xbar ± (s/t)·sqrt((t+ρ)·log((t+ρ)/(ρα²)))`. With `sigma` known (or a sub-Gaussian bound) the guarantee is exact; with the running standard deviation plugged in it is asymptotic and needs `min_n` ≥ 10 observations (default 20): starting at 2 the plug-in version has a false-positive rate of about 9%. `rho` or `n_target` must be given and the data's length is refused as a source, because tuning to it would break the guarantee. Oracles: the mixture martingale against numerical integration over λ, its expectation of 1 under the truth, the interval edge being exactly where the martingale equals 1/α, the optimal ρ against brute force and Howard et al.'s closed form, and the p-value / interval duality. Calibration (A/A, two N(0,1) arms, read after every observation from 20 to 2,000 per arm): sequence 2.2%, same with known variance 2.1%, versus 48% for the fixed-horizon test stopped at its first p < 0.05 and 5.4% when it is looked at once. Skewed (exponential) data is also ≤ 5%. *Routed:* a single-metric `iid` or `paired` config with `sequential: {n_target | rho, sigma?, min_n?}` and a `time` column (arrival order) runs the sequence as the primary method with the fixed-horizon test as the cross-check, and warns when the fixed-horizon test would call a win the always-valid p-value does not (`examples/toy_stream.yaml`). Not routed: A/B experiments (SRM, guardrails), clustered and time-series data. |
 | 5.5 | Failure-gallery #4: peeking at a fixed-horizon test | Figure shows inflation to well above 5%. *Built:* `validation/failure_gallery/04_peeking.py`: two identical arms read at 1 to 1,981 looks (up to 2,000 observations per arm). The fixed-horizon test stopped at its first p < 0.05 has a false-positive rate of 5.2% at one look, 17% at 5, 27% at 20 and 46% when read after every observation; the confidence sequence stays at 0.1–2% throughout. The figure also shows one A/A path that crosses ±1.96 while staying inside the sequence. |
 
-### Phase 6: Polish and distribution
+### Phase 6: Local polish (revised: personal use, nothing is published)
 
-- mkdocs site with **method cards**: when to use, assumptions, failure modes, references. *Built:* `mkdocs.yml` + `docs/` (Material theme): quickstart, concept pages (declaring dependence, the verdict, reports and the viewer), 20 method cards in one template (when to use, assumptions, how it fails, how to use it, checked against, references), a calibration page, and the failure gallery and five case studies. `docs/_hooks.py` assembles the gallery (script docstring, saved results table, figure) and the case-study pages (the committed REPORT.md files) from the repository at build time, so nothing is retyped. Build: `uv run --extra docs mkdocs build --strict` (a CI job). Fast tests check every card's sections, the nav, internal links, that code paths named in cards resolve, and the hook. Not deployed: publishing is a separate step.
-- HTML report. *Built:* `report/html.py` + `report/templates/*.html.j2`. `report: {format: [markdown, html]}` now writes `REPORT.html` beside the Markdown (`--html-out` to move it). One self-contained file (inline CSS and SVG, no scripts or network, light and dark): the same plan, verdict, tables and rationale as the Markdown, plus a verdict badge and an interval figure per comparison showing the CI against zero and the ±δ band. A/B experiments get the SRM table and ship/no-ship badges. Escaped with Jinja autoescape; tests check well-formedness and that every example config renders.
-- Streamlit viewer that reads only saved `Result` JSON. *Built:* `isbetter view result.json` (`pip install 'isbetter[app]'`) opens `viewer/app.py`; `viewer/model.py` loads a saved `Result` or `ExperimentResult` (from `isbetter run --json-out`) and shapes it into plain rows without Streamlit. The page shows the SRM check and ship decisions for experiments, a table of all comparisons, and per comparison the verdict, warnings, effect and CI, the interval figure, primary and cross-check methods with rationale, diagnostics, PBO-style family checks, and an HTML-report download. A test asserts importing the model loads no adapters, polars, DuckDB or scikit-learn; the page is tested with Streamlit's `AppTest` and was also checked in a real browser. Built on top of the HTML report (it reuses its renderer and figure).
-- PyPI release (`isbetter` 0.1.0). *Prepared, not published:* version 0.1.0 (a test keeps `pyproject.toml` and `__version__` equal), package metadata (SPDX licence, classifiers, URLs), a restricted sdist, `CHANGELOG.md`, `RELEASING.md` and `.github/workflows/release.yml` (tag `v*`: lint, types and tests, tag-matches-version check, build, `twine check`, a clean-venv smoke test of the wheel running the CLI, then trusted publishing through a protected `pypi` environment). Checked locally: both artifacts build, `twine check` passes, and the wheel installs and runs with only its base dependencies. Uploading needs the maintainer's PyPI account (steps in `RELEASING.md`).
-- README with the calibration table. *Built:* `validation/calibration_table.py` reruns 25 simulated rows (scenario x method) from `simulate/calibration.py` (the slow tests' scenarios and seeds) plus exact small-N coverage, and writes `validation/calibration_table.md` (with Monte Carlo bands) and a compact table in the README's marked block (`--readme`). Each recommended method sits beside the naive method it replaces; the *reading* of every row (calibrated, slightly liberal, inflated, conservative, under-covers) is computed from its band, not written by hand. Nightly regenerates it and uploads it. A fast test checks the README table against the committed full table.
-- A blog write-up of the failure gallery. *Built:* `docs/blog/failure-gallery.md` (in the site's nav): the six failures with the gallery's own numbers, two of its figures, what the fixes cost, what the simulations do not show, and how to reproduce. A fast test requires every percentage quoted in the post to be a gallery result rounded to 0.1%, so the post cannot drift from the scripts; all six scripts were rerun and reproduce the committed tables and figures byte for byte. Not published anywhere outside the repository.
+The original Phase 6 was distribution. It was built, then cut back to what a single local user needs.
+
+| Item | Status |
+|---|---|
+| Single-file HTML report (`report/html.py`, `report: {format: [markdown, html]}`; no scripts or network). | Built, kept. |
+| Calibration table (`validation/calibration_table.py`, regenerated into the README). | Built, kept. |
+| Method notes as plain Markdown under `docs/` (when to use, assumptions, failure modes, references). | Built, kept. The mkdocs site generator, nav and CI docs build were removed. |
+| Local task runner and publish guard: `Makefile`, `Private :: Do Not Upload`, manual-only `nightly.yml`. | Built. |
+| mkdocs site, Streamlit viewer (`isbetter view`), PyPI release workflow and `RELEASING.md`, failure-gallery blog post. | Removed (no tag or upload was ever made). |
+| "Using it on your own data" runbook: one config per adapter, expected columns, the common ways to get a wrong answer (wrong `dependence`, ratio metric as a plain mean, peeking). | Not built. Next, on request. |
 
 ---
 
@@ -375,13 +393,13 @@ Every phase ends with a project that can be shown on its own. Tickets are sized 
 | Unit | `tests/unit/` | ms | Edge cases, input validation, shapes. | n = 1 raises; NaN raises; zero variance gives an explicit error. |
 | Oracle | `tests/oracle/` | ms–s | Our numbers match the reference to 1e-8 (closed form) or within Monte Carlo SE (resampling). | `welch_t` vs `scipy.stats.ttest_ind(equal_var=False)`. |
 | Property | `tests/property/` | s | Invariances, using `hypothesis`. | Swap A/B flips the sign; adding a constant to both arms leaves p unchanged; scaling by c>0 scales the estimate by c. |
-| Calibration | `tests/calibration/` (`@pytest.mark.slow`) | min | Type I error and coverage within Monte Carlo bands. | 10k replications nightly; 2k locally. |
+| Calibration | `tests/calibration/` (`@pytest.mark.slow`) | min | Type I error and coverage within Monte Carlo bands. | 10k replications in `make calibrate`; 2k for a quick local look. |
 
 The Monte Carlo band for a rejection rate is α ± 2·√(α(1−α)/R). That gives ±0.0044 at R = 10,000 and ±0.0097 at R = 2,000.
 
 CI setup:
 - `ci.yml` runs lint, mypy, unit, oracle and property tests on every PR.
-- `nightly.yml` runs the calibration tests and the failure-gallery scripts, and uploads the figures as artifacts.
+- `nightly.yml` runs the calibration tests and the failure-gallery scripts, and uploads the figures as artifacts. It is manual-only; the same job runs locally as `make calibrate gallery`.
 
 ---
 
@@ -421,7 +439,7 @@ report: {format: [markdown, html], include_simulation_check: true}
   - Prefer Poisson(1) weights in float32.
 - **M5:** use one store, or the store × department aggregation; downcast to int16/float32 with categorical IDs.
 - **Calibration:** vectorise across replications by simulating an `R × n` matrix in chunks of R.
-- **Streamlit:** never loads raw data.
+- **HTML report:** built from the saved `Result` only; it never loads raw data.
 
 ---
 

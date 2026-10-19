@@ -12,7 +12,7 @@ uv sync
 
 Python 3.11 or newer. Optional extras: `ab` (DuckDB and polars for large A/B tables), `ml`
 (scikit-learn and LightGBM for the CV adapter), `forecast` and `finance` (`arch`),
-`app` (the [viewer](concepts/reports.md)) and `docs` (this site).
+and `bayes` (`baycomp`).
 
 ## Run an example
 
@@ -72,7 +72,6 @@ An unknown key is an error rather than being ignored, and a bad config gives a r
 
 ```bash
 uv run isbetter run config.yaml --json-out result.json   # also save the Result
-uv run isbetter view result.json                         # browse it in the viewer
 uv run isbetter plan-size --kind proportions --baseline 0.10 --mde 0.01   # sample size / power
 uv run pytest                                            # fast tests
 uv run pytest -m slow                                    # calibration, 10,000 replications

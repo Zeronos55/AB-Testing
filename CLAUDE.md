@@ -6,7 +6,7 @@ that picks the valid test, returns a three-way verdict and shows the test is cal
 Full design, method routing, formulas and phase tickets: `docs/BLUEPRINT.md`. Read the
 relevant phase there before starting a ticket.
 
-## Commands (mirror CI)
+## Commands (mirror CI; `make check`, `make calibrate`, `make gallery` wrap them)
 ```bash
 uv sync
 uv run ruff check .
@@ -48,6 +48,11 @@ Run ruff, mypy and fast pytest before every commit. CI runs Python 3.11 and 3.12
   error or coverage, run `-m slow` too.
 - Don't weaken a test tolerance to make it pass; find the cause.
 - Don't commit generated outputs (`data/`, `case_studies/*/out/`).
+
+## Scope
+Personal, local, unpublished tool. Do not add PyPI publishing, a docs site, Streamlit or other hosting;
+`pyproject.toml` carries `Private :: Do Not Upload` on purpose. Phase 6 is the local-polish list in
+`docs/BLUEPRINT.md` section 7.
 
 ## Gotchas
 - Case studies 01 to 05 (`01_fraud_classifiers`, `02_ab_hillstrom_criteo`, `03_forecasting_m5`,

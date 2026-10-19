@@ -33,7 +33,7 @@ from isbetter.methods.cluster import cluster_robust_diff, paired_cluster_robust
 - `statsmodels` OLS with `cov_type='cluster'` (t(G - 1) as statsmodels uses); the paired version to 1e-12.
 - The paired version reduces exactly to the paired t-test when every item is its own cluster, and equals the form in Miller (2024) transcribed as triple loops.
 - The third-party `errorbars` package agrees (a cross-check by another implementer, not the paper's numbers).
-- A calibration test and [failure gallery #5](../gallery.md) for the false-positive rate with and without clusters.
+- A calibration test and [failure gallery #5](../../validation/failure_gallery/) for the false-positive rate with and without clusters.
 
 ## References
 

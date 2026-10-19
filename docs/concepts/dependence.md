@@ -2,7 +2,7 @@
 
 The one decision `isbetter` asks of you is **how your observations depend on each other**. That
 choice, together with the kind of metric, picks the test. The same scores analysed with the wrong
-dependence give a confident wrong answer, which is what the [failure gallery](../gallery.md) shows.
+dependence give a confident wrong answer, which is what the [failure gallery](../../validation/failure_gallery/) shows.
 
 | `dependence` | Use it when | Primary method | Cross-checks |
 |---|---|---|---|

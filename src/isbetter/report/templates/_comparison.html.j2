@@ -1,0 +1,26 @@
+{% macro comparison(c, r, level, label_text, tone, row, figure) %}{% set n_family = c.family_size or r.comparisons|length %}
+<section class="card">
+<h{{ level }}>{{ c.candidate }} vs {{ c.baseline }} &mdash; {{ c.metric }}</h{{ level }}>
+<p><span class="badge {{ tone[c.verdict.label] }}">{{ label_text[c.verdict.label] }}</span>
+<code>{{ c.verdict.label }}</code></p>
+<p>{{ c.verdict.explanation }}</p>
+{% for w in c.warnings %}<p class="warning"><strong>Warning:</strong> {{ w }}</p>
+{% endfor %}{% if c.verdict.n_needed or c.verdict.n_needed_note %}<p><strong>How much more data?</strong>
+{% if c.verdict.n_needed %}About {{ "%.0f"|format(c.verdict.n_needed) }} observations in total (currently {{ c.n_pairs }}). {% endif %}{% if c.verdict.n_needed_note %}{{ c.verdict.n_needed_note }}.{% endif %}</p>
+{% endif %}
+{{ figure(c, r.plan.min_effect) }}
+<p class="figcap">Oriented effect with its interval (positive: the candidate wins). Dashed line: no
+difference. Shaded band: &plusmn; the minimum effect of interest, &delta; = {{ r.plan.min_effect }}.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Method</th><th class="num">Estimate</th><th>{{ "%.1f"|format(c.primary.ci_level * 100) }}% CI</th><th class="num">p-value</th></tr></thead>
+<tbody>
+{% for m in [c.primary] + c.cross_checks %}{% set t = row(m) %}<tr><td>{{ t.method }}</td><td class="num">{{ t.estimate }}</td><td>{{ t.ci }}</td><td class="num">{{ t.p }}</td></tr>
+{% endfor %}</tbody></table></div>
+{% if c.adjusted_p is not none %}<p>Multiplicity ({{ r.plan.correction }} across {{ n_family }} {{ 'candidates' if n_family == r.comparisons|length else 'hypotheses' }}): adjusted p = {{ c.adjusted_p|pval }}; CIs use per-comparison alpha = {{ "%.4g"|format(c.alpha_used) }}.</p>
+{% endif %}<p>Oriented effect: {{ "%.4g"|format(c.oriented_estimate) }} (CI {{ "%.4g"|format(c.oriented_ci_low) }} to {{ "%.4g"|format(c.oriented_ci_high) }}), minimum effect of interest &delta; = {{ r.plan.min_effect }}.</p>
+<p class="why"><strong>Why this method:</strong> {{ c.primary.rationale }}{% if c.primary.diagnostics.first_look is defined %}{% if c.primary.diagnostics.first_exclusion_n %} The sequence first excluded 0 at {{ c.primary.diagnostics.first_exclusion_n }} observations{% if c.primary.diagnostics.unused_trailing_observations is defined %} per arm or pair{% endif %}.{% else %} The sequence has not excluded 0 at any look since the first look at {{ c.primary.diagnostics.first_look }}.{% endif %}{% endif %}</p>
+{% if c.cross_checks %}<ul class="why">
+{% for m in c.cross_checks %}<li><em>{{ m.method }}:</em> {{ m.rationale }}{% if m.diagnostics.suggested_block_len is defined %} Block length {{ m.diagnostics.block_len }} ({{ "set in the config" if m.diagnostics.block_len_source == "user" else "suggested by " ~ ("Politis-White" if m.diagnostics.block_len_source == "politis_white" else "the T^(1/3) rule of thumb") }}); automatic suggestion: stationary {{ "%.1f"|format(m.diagnostics.suggested_block_len.stationary) }}, circular {{ "%.1f"|format(m.diagnostics.suggested_block_len.circular) }}.{% endif %}</li>
+{% endfor %}</ul>{% endif %}
+</section>
+{% endmacro %}

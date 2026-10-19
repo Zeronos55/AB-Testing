@@ -4,6 +4,59 @@
 
 `isbetter` is planned as a cross-domain comparison toolkit. It treats several kinds of comparison as the same problem: ML model comparisons, A/B experiments, forecast backtests, trading strategies and LLM evals. In each case you have paired or unpaired scores with a known dependence structure (`iid`, `paired`, `clustered`, `cv_overlap`, `timeseries`), and that structure determines which test is valid.
 
+## Is it calibrated?
+
+Every method is checked on worlds where the truth is known: two equal arms (how often does it
+declare a difference?) or a known parameter (does the 95% interval contain it?). Rows marked
+*naive* are the textbook methods that `isbetter` replaces, shown beside the method it uses instead.
+Rates are from `validation/calibration_table.py` (seeded, up to 10,000 replications per row; the
+full table with Monte Carlo bands is in [validation/calibration_table.md](validation/calibration_table.md)).
+
+<!-- calibration-table:start -->
+
+| Scenario | Method | Measures | Nominal | Observed | Reading |
+|---|---|---|---:|---:|---|
+| A/A, n = 40 per arm, normal | Welch t | false positives | 5.0% | **5.0%** | calibrated |
+| A/A, 40 pairs, normal | paired t | false positives | 5.0% | **5.1%** | calibrated |
+| A/A, n = 1,500 per arm, conversion rate 10% | two-proportion z | false positives | 5.0% | **4.6%** | calibrated |
+| A/A, n = 400 per arm, covariate correlation 0.7, curved | CUPED | false positives | 5.0% | **4.8%** | calibrated |
+| A/A, n = 400 per arm, covariate correlation 0.7 | unadjusted Welch *(reference)* | false positives | 5.0% | **5.4%** | calibrated |
+| True 40/30/30 split, 20,000 users | SRM chi-square at 0.05 | false alarms | 5.0% | **5.2%** | calibrated |
+| A/A, 100 users x 10 sessions per arm, ICC 0.3 | row-level Welch *(naive)* | false positives | 5.0% | **31.2%** | inflated |
+| A/A, 100 users x 10 sessions per arm, ICC 0.3 | CR1 by user | false positives | 5.0% | **5.5%** | slightly liberal |
+| Equal models, 30 passages x 5 items | paired t ignoring passages *(naive)* | false positives | 5.0% | **26.2%** | inflated |
+| Equal models, 30 passages x 5 items | paired CR1 by passage | false positives | 5.0% | **4.9%** | calibrated |
+| Equal learners, 10 x 10-fold CV, n = 100 | k-fold t *(naive)* | false positives | 5.0% | **56.8%** | inflated |
+| Equal learners, 10 x 10-fold CV, n = 100 | Nadeau-Bengio | false positives | 5.0% | **4.8%** | calibrated |
+| Equal forecasters, h = 1, 250 origins | paired t on losses *(naive)* | false positives | 5.0% | **4.5%** | calibrated |
+| Equal forecasters, h = 1, 250 origins | Diebold-Mariano + HLN | false positives | 5.0% | **4.5%** | calibrated |
+| Equal forecasters, h = 3, 250 origins | paired t on losses *(naive)* | false positives | 5.0% | **17.5%** | inflated |
+| Equal forecasters, h = 3, 250 origins | Diebold-Mariano + HLN | false positives | 5.0% | **5.1%** | calibrated |
+| Equal forecasters, h = 7, 250 origins | paired t on losses *(naive)* | false positives | 5.0% | **34.6%** | inflated |
+| Equal forecasters, h = 7, 250 origins | Diebold-Mariano + HLN | false positives | 5.0% | **5.1%** | calibrated |
+| A/A, read after every observation (20 to 2,000 per arm) | fixed-horizon test, stopped at first p < 0.05 *(naive)* | false positives | 5.0% | **48.9%** | inflated |
+| A/A, read after every observation (20 to 2,000 per arm) | confidence sequence | false positives | 5.0% | **2.5%** | conservative (valid) |
+| A/A, read once at n = 2,000 per arm | fixed-horizon Welch t | false positives | 5.0% | **5.8%** | calibrated |
+| AR(1)-GARCH returns, T = 500, phi = 0.2 | iid bootstrap 95% CI *(naive)* | coverage | 95.0% | **87.9%** | under-covers |
+| AR(1)-GARCH returns, T = 500, phi = 0.2 | stationary block bootstrap 95% CI | coverage | 95.0% | **92.4%** | slightly under-covers |
+| True accuracy 0.95, N = 30 items | normal-theory 95% CI *(naive)* | coverage | 95.0% | **78.2%** | under-covers |
+| True accuracy 0.95, N = 30 items | Wilson 95% CI | coverage | 95.0% | **93.9%** | slightly under-covers |
+| True accuracy 0.95, N = 30 items | Jeffreys 95% CI | coverage | 95.0% | **98.4%** | calibrated |
+| True accuracy 0.95, N = 30 items | Clopper-Pearson 95% CI | coverage | 95.0% | **98.4%** | calibrated |
+| Worst true accuracy in 0.02-0.98, N = 30 items | normal-theory 95% CI *(naive)* | worst-case coverage | 95.0% | **45.4%** | under-covers |
+| Worst true accuracy in 0.02-0.98, N = 30 items | Wilson 95% CI | worst-case coverage | 95.0% | **93.0%** | slightly under-covers |
+| Worst true accuracy in 0.02-0.98, N = 30 items | Jeffreys 95% CI | worst-case coverage | 95.0% | **88.9%** | under-covers |
+| Worst true accuracy in 0.02-0.98, N = 30 items | Clopper-Pearson 95% CI | worst-case coverage | 95.0% | **95.6%** | calibrated |
+| Paired accuracy difference, N = 60, 0.95 vs 0.90 | normal-theory paired CI *(naive)* | coverage | 95.0% | **91.1%** | under-covers |
+| Paired accuracy difference, N = 60, 0.95 vs 0.90 | Tango score CI | coverage | 95.0% | **96.1%** | conservative (valid) |
+
+<!-- calibration-table:end -->
+
+A calibrated method falls outside its Monte Carlo band about 1 time in 20, so a row marked
+*slightly liberal* or *slightly under-covers* is not by itself a failure; the repeated nightly
+runs (`pytest -m slow`) are the check. The known limits are written down in the sections below.
+Regenerate the table with `uv run python validation/calibration_table.py --readme`.
+
 ## Status
 
 **Phases 0-5 built** (iid/paired/clustered/CV-overlap/time-series comparison, verdict with `n_needed`, Holm/BH, report, calibration harness, fraud case study; A/B testing with proportions, CUPED, ratio metrics, automatic SRM check, guardrail decisions, power planning, 14M-row aggregation; forecast backtests with Diebold-Mariano, SPA/StepM/MCS and block bootstraps; trading-strategy evaluation with PSR/DSR/MinTRL, a trial registry, PBO-CSCV and a block-bootstrap Sharpe interval; LLM evals with paired + clustered errors, small-N intervals and confidence sequences for peeking). Try it:

@@ -382,7 +382,7 @@ The original Phase 6 was distribution. It was built, then cut back to what a sin
 | Method notes as plain Markdown under `docs/` (when to use, assumptions, failure modes, references). | Built, kept. The mkdocs site generator, nav and CI docs build were removed. |
 | Local task runner and publish guard: `Makefile`, `Private :: Do Not Upload`, manual-only `nightly.yml`. | Built. |
 | mkdocs site, Streamlit viewer (`isbetter view`), PyPI release workflow and `RELEASING.md`, failure-gallery blog post. | Removed (no tag or upload was ever made). |
-| "Using it on your own data" runbook: one config per adapter, expected columns, the common ways to get a wrong answer (wrong `dependence`, ratio metric as a plain mean, peeking). | Not built. Next, on request. |
+| "Using it on your own data" runbook: one config per adapter, expected columns, the common ways to get a wrong answer (wrong `dependence`, ratio metric as a plain mean, peeking). | Built: `docs/own-data.md`. One config per adapter (and for clustered, large-table and live-experiment cases), the expected columns, how to pick the dependence, ten ways to get a wrong answer and the error messages. `tests/unit/test_runbook.py` reads the configs out of the page and runs each on a generated file, checks that the listed messages are what the CLI prints, and checks that declaring the wrong dependence gives the narrower interval the page claims for clustered and CV data. |
 
 ---
 

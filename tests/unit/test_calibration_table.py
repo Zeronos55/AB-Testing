@@ -120,3 +120,33 @@ def test_readme_table_agrees_with_the_committed_full_table():
         scenario, method, measures, nominal, observed, reading = s
         assert (scenario, measures, nominal, observed, reading) == (f[0], f[3], f[4], f[5], f[8])
         assert method.split(" (")[0] == f[1]
+
+
+def test_csv_holds_the_same_numbers_as_the_markdown_table(tiny_rows):
+    import csv
+    import io
+
+    out = list(csv.DictReader(io.StringIO(ct.render_csv(tiny_rows))))
+    assert tuple(out[0]) == ct.CSV_COLUMNS and len(out) == len(tiny_rows)
+    md = [_cells(ln) for ln in ct.render_table(tiny_rows).strip().splitlines()[2:]]
+    for row, src, cells in zip(out, tiny_rows, md, strict=True):
+        assert (row["scenario"], row["method"], row["role"], row["measures"]) == tuple(cells[:4])
+        assert float(row["nominal"]) == src.nominal and float(row["observed"]) == src.observed
+        assert ct._pct(float(row["observed"])) == cells[5] and row["reading"] == cells[8]
+        if src.result is None:
+            assert (row["band_low"], row["band_high"], row["reps"]) == ("", "", "")
+            assert row["exact"] == "true" and cells[6:8] == ["exact", "exact"]
+        else:
+            assert (float(row["band_low"]), float(row["band_high"])) == src.result.band
+            assert int(row["reps"]) == src.result.reps and row["exact"] == "false"
+
+
+def test_main_writes_the_csv_only_when_asked(tiny_rows, tmp_path, monkeypatch):
+    monkeypatch.setattr(ct, "build_rows", lambda reps, progress=None: tiny_rows)
+    md, out = tmp_path / "t.md", tmp_path / "bi" / "calibration.csv"
+    monkeypatch.setattr(sys, "argv", ["x", "--reps", "40", "--out", str(md)])
+    ct.main()
+    assert md.exists() and not out.exists()
+    monkeypatch.setattr(sys, "argv", ["x", "--reps", "40", "--out", str(md), "--csv", str(out)])
+    ct.main()
+    assert out.read_text() == ct.render_csv(tiny_rows)

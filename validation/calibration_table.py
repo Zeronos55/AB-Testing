@@ -8,6 +8,7 @@ without it. Results are written to ``validation/calibration_table.md`` and, with
 ``--readme``, into the marked block of README.md.
 
 Run:  uv run python validation/calibration_table.py [--reps 10000] [--readme]
+      [--csv bi/calibration.csv]
 Takes a few minutes at the default size; the 10,000-replication cap is lowered for the slower
 scenarios (bootstrap intervals, confidence sequences) to the same sizes as the slow tests.
 """
@@ -15,6 +16,8 @@ scenarios (bootstrap intervals, confidence sequences) to the same sizes as the s
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import re
 import time
 from collections.abc import Callable
@@ -276,6 +279,50 @@ def render_table(rows: list[Row]) -> str:
     return "\n".join(lines) + "\n"
 
 
+CSV_COLUMNS = (
+    "scenario",
+    "method",
+    "role",
+    "measures",
+    "nominal",
+    "observed",
+    "band_low",
+    "band_high",
+    "reps",
+    "exact",
+    "reading",
+)
+
+
+def render_csv(rows: list[Row]) -> str:
+    """The table as one flat CSV for a Power BI dashboard (``bi/calibration.csv``).
+
+    Rates are fractions, not percentages, and are not rounded. ``band_low``, ``band_high`` and
+    ``reps`` are empty for exact rows, which have no simulation noise.
+    """
+    buf = io.StringIO(newline="")
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(CSV_COLUMNS)
+    for r in rows:
+        lo, hi = r.result.band if r.result else ("", "")
+        w.writerow(
+            [
+                r.scenario,
+                r.method,
+                r.role,
+                r.measures,
+                r.nominal,
+                r.observed,
+                lo,
+                hi,
+                r.result.reps if r.result else "",
+                "true" if r.result is None else "false",
+                r.reading(),
+            ]
+        )
+    return buf.getvalue()
+
+
 def render_compact(rows: list[Row]) -> str:
     """The README version: fewer columns, naive methods marked in the method cell."""
     tag = {FOIL: " *(naive)*", REFERENCE: " *(reference)*", RECOMMENDED: ""}
@@ -338,6 +385,9 @@ def main() -> None:
     ap.add_argument("--reps", type=int, default=10_000, help="replications per row (cap)")
     ap.add_argument("--readme", action="store_true", help="also update the README block")
     ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument(
+        "--csv", type=Path, default=None, help="also write the table as CSV (for Power BI)"
+    )
     args = ap.parse_args()
     t0 = time.time()
     rows = build_rows(
@@ -345,6 +395,10 @@ def main() -> None:
     )
     args.out.write_text(render_page(rows, args.reps))
     print(f"wrote {args.out}")
+    if args.csv is not None:
+        args.csv.parent.mkdir(parents=True, exist_ok=True)
+        args.csv.write_text(render_csv(rows), encoding="utf-8")
+        print(f"wrote {args.csv}")
     if args.readme:
         update_readme(render_compact(rows))
         print("updated README.md")

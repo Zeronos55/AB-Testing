@@ -10,7 +10,15 @@ from typer.testing import CliRunner
 
 from isbetter.cli import app
 from isbetter.core.result import MethodResult
-from isbetter.report.bi import COMPARISON_COLUMNS, CROSSCHECK_COLUMNS, agrees
+from isbetter.decision.verdict import MIRROR
+from isbetter.report.bi import (
+    COMPARISON_COLUMNS,
+    CROSSCHECK_COLUMNS,
+    VERDICT_ORDER_COLUMNS,
+    agrees,
+    verdict_order_rows,
+)
+from isbetter.report.markdown import LABEL_TEXT
 from isbetter.simulate.ab_data import hillstrom_like, write_csv
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -125,6 +133,41 @@ def test_columns_are_stable(tmp_path):
     for name, cols in (("comparisons", COMPARISON_COLUMNS), ("crosschecks", CROSSCHECK_COLUMNS)):
         header = (tmp_path / "bi" / f"{name}.csv").read_text().splitlines()[0]
         assert header.split(",") == list(cols)
+
+
+def test_verdict_order_lists_every_label_once_in_reading_order(tmp_path):
+    out = tmp_path / "res.json"
+    run_cli(EXAMPLES[0], out, tmp_path)
+    export([out], tmp_path / "bi")
+    rows = read(tmp_path / "bi" / "verdict_order.csv")
+    assert list(rows[0]) == list(VERDICT_ORDER_COLUMNS)
+    assert [r["label"] for r in rows] == [r["label"] for r in verdict_order_rows()]
+    assert {r["label"] for r in rows} == set(MIRROR)  # no label missing, none invented
+    assert [int(r["sort_order"]) for r in rows] == list(range(1, 7))
+    assert all(r["text"] == LABEL_TEXT[r["label"]] for r in rows)
+    assert all(len(r["colour"]) == 7 and r["colour"][0] == "#" for r in rows)
+    assert len({r["colour"] for r in rows}) == 6  # colour is a cue, so no two verdicts share one
+    # reading order mirrors: the better a label is for the candidate, the earlier it comes
+    order = {r["label"]: int(r["sort_order"]) for r in rows}
+    for label, mirror in MIRROR.items():
+        if label.startswith("A_"):
+            assert order[label] < order[mirror]
+
+
+def test_cli_prints_the_verdict_counts_the_dashboard_must_reproduce(tmp_path):
+    out = tmp_path / "res.json"
+    run_cli(EXAMPLES[0], out, tmp_path)
+    res = CliRunner().invoke(app, ["export-bi", str(out), "--out-dir", str(tmp_path / "bi")])
+    assert res.exit_code == 0, res.output
+    comps = read(tmp_path / "bi" / "comparisons.csv")
+    printed = {
+        ln.split(":")[0].strip(): int(ln.split(":")[1])
+        for ln in res.output.splitlines()
+        if ln.startswith("  ")
+    }
+    assert set(printed) == set(MIRROR)
+    assert printed == {lab: sum(r["verdict"] == lab for r in comps) for lab in MIRROR}
+    assert sum(printed.values()) == len(comps)
 
 
 def test_bad_input_exits_2(tmp_path):

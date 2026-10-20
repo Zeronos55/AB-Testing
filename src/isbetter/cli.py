@@ -109,7 +109,7 @@ def export_bi_cmd(
     results: list[Path] = typer.Argument(
         ..., exists=True, dir_okay=False, help="Result JSON files written by `run --json-out`"
     ),
-    out_dir: Path = typer.Option(Path("bi"), help="Folder for comparisons.csv and crosschecks.csv"),
+    out_dir: Path = typer.Option(Path("bi"), help="Folder for the CSV tables"),
 ) -> None:
     """Flatten saved results into CSV tables for a Power BI dashboard.
 
@@ -117,11 +117,14 @@ def export_bi_cmd(
     recomputed; estimates are oriented so that positive means the candidate is better.
     """
     try:
-        comparisons, crosschecks = export_bi(results, out_dir)
+        tables = export_bi(results, out_dir)
     except (ValueError, OSError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
-    typer.echo(f"tables written to {comparisons} and {crosschecks}")
+    typer.echo("tables written to " + ", ".join(str(p) for p in tables[:3]))
+    typer.echo("verdicts (the dashboard's cards must show these counts):")
+    for label, n in tables.verdict_counts.items():
+        typer.echo(f"  {label}: {n}")
 
 
 @app.command("plan-size")

@@ -20,6 +20,7 @@ from isbetter.methods.power import (
     sample_size_means,
     sample_size_proportions,
 )
+from isbetter.report.bi import export_bi
 from isbetter.report.html import render_experiment_html, render_html
 from isbetter.report.markdown import render_experiment_markdown, render_markdown
 
@@ -101,6 +102,26 @@ def run(
     for c in result.comparisons:
         typer.echo(f"{c.candidate} vs {c.baseline}: {c.verdict.label}")
     typer.echo("report written to " + ", ".join(str(w) for w in written))
+
+
+@app.command("export-bi")
+def export_bi_cmd(
+    results: list[Path] = typer.Argument(
+        ..., exists=True, dir_okay=False, help="Result JSON files written by `run --json-out`"
+    ),
+    out_dir: Path = typer.Option(Path("bi"), help="Folder for comparisons.csv and crosschecks.csv"),
+) -> None:
+    """Flatten saved results into CSV tables for a Power BI dashboard.
+
+    Reads both single-metric and A/B experiment results. Numbers are copied from the JSON, never
+    recomputed; estimates are oriented so that positive means the candidate is better.
+    """
+    try:
+        comparisons, crosschecks = export_bi(results, out_dir)
+    except (ValueError, OSError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(f"tables written to {comparisons} and {crosschecks}")
 
 
 @app.command("plan-size")

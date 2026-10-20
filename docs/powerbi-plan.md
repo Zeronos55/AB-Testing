@@ -1,6 +1,6 @@
 # Power BI dashboard plan
 
-Status: plan only, nothing built. Copied from the Claude Docs page "Power BI Dashboard Plan for the isbetter Toolkit" (2026-10-20); this copy is the one to edit from now on.
+Status: P0 step 1 built (`isbetter export-bi` writes `comparisons.csv` and `crosschecks.csv`); the calibration CSV and the `.pbix` are not built. Copied from the Claude Docs page "Power BI Dashboard Plan for the isbetter Toolkit" (2026-10-20); this copy is the one to edit from now on.
 
 ## Overview
 
@@ -11,6 +11,8 @@ An earlier idea had DAX computing lift, standard errors and confidence intervals
 The blueprint removed the Streamlit viewer, so Power BI fills that gap. Keep the `.pbix` local and do not publish it to the Power BI Service, in line with the blueprint's "personal, local, unpublished" scope.
 
 ## Data model: four flat tables
+
+Built so far: `comparisons` and `crosschecks`, from `isbetter export-bi RESULT.json... --out-dir bi` (input is the file `isbetter run --json-out` writes; `bi/` is git-ignored). `agrees` means: the cross-check's oriented interval, put through the same three-way verdict rule as the primary, gives the same label, so it lands on the same side of 0 and of ±δ. A cross-check with no interval (the sign-flip permutation test) is compared on the side of 0 only: the sign of its estimate if its p-value is below the comparison's alpha, otherwise "neither".
 
 One `isbetter export-bi` command writes four flat CSVs from the saved result JSON. At this size (dozens to a few hundred comparisons) a seven-table star schema only adds relationships to maintain.
 

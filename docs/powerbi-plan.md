@@ -1,6 +1,6 @@
 # Power BI dashboard plan
 
-Status: P0 built (`isbetter export-bi` writes `comparisons.csv` and `crosschecks.csv`; `validation/calibration_table.py --csv` writes `calibration.csv`); the `.pbix` is not built. Copied from the Claude Docs page "Power BI Dashboard Plan for the isbetter Toolkit" (2026-10-20); this copy is the one to edit from now on.
+Status: P0 built; P1 prepared on the Python side (`verdict_order` is written by `export-bi`, which also prints the verdict counts the dashboard must reproduce) with the build and refresh steps in the [runbook](powerbi-runbook.md), but the `.pbix` itself is not built (Desktop is Windows-only) and the runbook's Power Query and DAX are untried. P0 (`isbetter export-bi` writes `comparisons.csv` and `crosschecks.csv`; `validation/calibration_table.py --csv` writes `calibration.csv`); the `.pbix` is not built. Copied from the Claude Docs page "Power BI Dashboard Plan for the isbetter Toolkit" (2026-10-20); this copy is the one to edit from now on.
 
 ## Overview
 
@@ -14,7 +14,7 @@ The blueprint removed the Streamlit viewer, so Power BI fills that gap. Keep the
 
 Built so far: `comparisons` and `crosschecks`, from `isbetter export-bi RESULT.json... --out-dir bi` (input is the file `isbetter run --json-out` writes; `bi/` is git-ignored). `agrees` means: the cross-check's oriented interval, put through the same three-way verdict rule as the primary, gives the same label, so it lands on the same side of 0 and of ±δ. A cross-check with no interval (the sign-flip permutation test) is compared on the side of 0 only: the sign of its estimate if its p-value is below the comparison's alpha, otherwise "neither".
 
-`calibration` is `uv run python validation/calibration_table.py --csv bi/calibration.csv` (it reruns the simulations, a few minutes at the default size). One row per method x scenario with `nominal`, `observed` and `band_low`/`band_high` as fractions, `reps`, an `exact` flag (no simulation noise: band and reps empty) and the script's own `reading`. `verdict_order` is not built.
+`calibration` is `uv run python validation/calibration_table.py --csv bi/calibration.csv` (it reruns the simulations, a few minutes at the default size). One row per method x scenario with `nominal`, `observed` and `band_low`/`band_high` as fractions, `reps`, an `exact` flag (no simulation noise: band and reps empty) and the script's own `reading`. `verdict_order` is `verdict_order.csv`, written by `export-bi` with the other two.
 
 One `isbetter export-bi` command writes four flat CSVs from the saved result JSON. At this size (dozens to a few hundred comparisons) a seven-table star schema only adds relationships to maintain.
 

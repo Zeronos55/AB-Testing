@@ -29,6 +29,6 @@ These numbers come from simulations where the truth is known; see the [calibrati
 - [Method cards](methods/index.md): one page per method with *when to use it*, *what it assumes*, *how it fails* and *references*.
 - [Case studies](../case_studies/): five worked comparisons (fraud classifiers, an email A/B test, forecasting, trading, an LLM eval).
 - [Blueprint](BLUEPRINT.md): the full design, formulas and the build plan.
-- [Power BI plan](powerbi-plan.md): a proposed local dashboard over saved results (plan only, not built).
+- [Power BI plan](powerbi-plan.md) and [runbook](powerbi-runbook.md): a local dashboard over saved results (tables built; the `.pbix` is yours to build from the runbook).
 
 > **Status.** The case studies run on synthetic stand-in data with the structure of the real datasets; each report says so.

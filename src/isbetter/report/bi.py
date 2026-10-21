@@ -7,6 +7,10 @@ A viewer, not a second place to compute statistics: every number is copied from 
 * ``comparisons``: one row per baseline x candidate x metric, with the primary method;
 * ``crosschecks``: one row per secondary method of a comparison, joined on ``comparison_key``.
 
+A third file, ``verdict_order``, is the one hand-typed table: the six labels in reading order
+with a colour and plain-English text, so a report can sort and colour by verdict. It holds no
+results and is rewritten identically on every export.
+
 Estimates and intervals are the ``oriented_*`` ones, so a positive number always means the
 candidate is better. Cross-checks are oriented the same way before they are compared.
 """
@@ -18,13 +22,14 @@ import json
 import math
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from isbetter.core.dependence import dependence_to_dict
 from isbetter.core.experiment import ExperimentResult
 from isbetter.core.plan import AnalysisPlan
 from isbetter.core.result import ComparisonResult, MethodResult, Result
 from isbetter.decision.verdict import decide
+from isbetter.report.markdown import LABEL_TEXT
 
 COMPARISON_COLUMNS = (
     "comparison_key",
@@ -71,7 +76,29 @@ CROSSCHECK_COLUMNS = (
     "agrees",
 )
 
+VERDICT_ORDER_COLUMNS = ("label", "sort_order", "colour", "text")
+
+# label -> colour: the HTML report's light-theme verdict colours, so the dashboard reads the same
+# way. Order: candidate clearly better, ..., baseline clearly better. `equivalent` comes before
+# `inconclusive` because it is an answer, while `inconclusive` asks for more data.
+_VERDICT_COLOURS = (
+    ("A_better_practical", "#1a7f4b"),
+    ("A_better_maybe_trivial", "#5b8f3a"),
+    ("equivalent", "#5f5f5a"),
+    ("inconclusive", "#9a9a92"),
+    ("B_better_maybe_trivial", "#b36b00"),
+    ("B_better_practical", "#b3261e"),
+)
+
 Row = dict[str, Any]
+
+
+def verdict_order_rows() -> list[Row]:
+    """The six verdict labels in reading order, with a colour and the report's own wording."""
+    return [
+        {"label": label, "sort_order": i, "colour": colour, "text": LABEL_TEXT[label]}
+        for i, (label, colour) in enumerate(_VERDICT_COLOURS, start=1)
+    ]
 
 
 def comparison_key(
@@ -252,8 +279,15 @@ def write_table(path: Path, columns: Sequence[str], rows: Iterable[Row]) -> None
             w.writerow([_cell(row[c]) for c in columns])
 
 
-def export_bi(inputs: Sequence[Path], out_dir: Path) -> tuple[Path, Path]:
-    """Write ``comparisons.csv`` and ``crosschecks.csv`` for the saved result files."""
+class ExportedTables(NamedTuple):
+    comparisons: Path
+    crosschecks: Path
+    verdict_order: Path
+    verdict_counts: dict[str, int]  # the numbers a dashboard's verdict cards must reproduce
+
+
+def export_bi(inputs: Sequence[Path], out_dir: Path) -> ExportedTables:
+    """Write ``comparisons.csv``, ``crosschecks.csv`` and ``verdict_order.csv``."""
     comps: list[Row] = []
     checks: list[Row] = []
     for p in inputs:
@@ -267,4 +301,9 @@ def export_bi(inputs: Sequence[Path], out_dir: Path) -> tuple[Path, Path]:
     cpath, kpath = out_dir / "comparisons.csv", out_dir / "crosschecks.csv"
     write_table(cpath, COMPARISON_COLUMNS, comps)
     write_table(kpath, CROSSCHECK_COLUMNS, checks)
-    return cpath, kpath
+    vpath = out_dir / "verdict_order.csv"
+    write_table(vpath, VERDICT_ORDER_COLUMNS, verdict_order_rows())
+    counts = {r["label"]: 0 for r in verdict_order_rows()}
+    for row in comps:
+        counts[row["verdict"]] += 1
+    return ExportedTables(cpath, kpath, vpath, counts)

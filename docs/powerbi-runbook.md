@@ -114,6 +114,7 @@ Estimate = MAX ( comparisons[oriented_estimate] )         -- one row per compari
 CI low = MAX ( comparisons[oriented_ci_low] )
 CI high = MAX ( comparisons[oriented_ci_high] )
 Min effect = MAX ( comparisons[min_effect] )
+Min effect, negative = -[Min effect]
 
 Cross-checks = COUNTROWS ( crosschecks )
 Cross-checks agreeing =
@@ -147,7 +148,7 @@ colour, so colour is never the only cue.
 **2. Evidence**
 - Forest plot: a clustered bar chart, category = `baseline | candidate | metric` (a column made in
   Power Query from the three), value = `[Estimate]`, with *Analytics → Error bars* bound to
-  `[CI low]` and `[CI high]`. Mark ±`[Min effect]` as constant lines bound to the measure when one
+  `[CI low]` and `[CI high]`. Mark ±δ as two constant lines, bound to `[Min effect]` and `[Min effect, negative]` when one
   experiment is selected (*Constant line → fx*). Both are to be confirmed in your Desktop version
   (see "what to confirm" in the plan); if error bars cannot take a field, fall back to a table with
   a data bar on the interval.

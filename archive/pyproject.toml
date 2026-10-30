@@ -1,0 +1,102 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "isbetter"
+version = "0.1.0"
+description = "Dependence-aware A vs B comparison toolkit: valid test, three-way verdict, and calibration proof."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = [
+  "statistics", "ab-testing", "model-comparison", "hypothesis-testing", "cross-validation",
+  "diebold-mariano", "deflated-sharpe", "confidence-sequences", "llm-evaluation",
+]
+# Personal, unpublished tool: the first classifier makes PyPI (and compatible indexes) reject an upload.
+classifiers = [
+  "Private :: Do Not Upload",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "pydantic>=2.5",
+  "pyyaml>=6.0",
+  "typer>=0.12",
+  "jinja2>=3.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/Zeronos55/AB-Testing"
+Source = "https://github.com/Zeronos55/AB-Testing"
+Issues = "https://github.com/Zeronos55/AB-Testing/issues"
+Changelog = "https://github.com/Zeronos55/AB-Testing/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+ab = ["duckdb", "polars"]
+ml = ["scikit-learn", "lightgbm"]
+forecast = ["statsmodels", "statsforecast", "arch"]
+finance = ["arch"]
+bayes = ["baycomp"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6",
+    "pytest-xdist",
+    "ruff",
+    "mypy",
+    "types-PyYAML",
+    "statsmodels",
+    "scikit-learn",
+    "lightgbm",
+    "mlxtend",
+    "matplotlib",
+    "pandas",
+    "duckdb",
+    "polars",
+    "arch",
+    "errorbars>=0.2.4",
+]
+
+[project.scripts]
+isbetter = "isbetter.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/isbetter"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/examples", "/README.md", "/LICENSE", "/CHANGELOG.md"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["scipy.*", "yaml.*", "pandas.*", "arch.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: slow calibration tests (deselect with -m 'not slow')"]
+addopts = "-m 'not slow'"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]

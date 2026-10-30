@@ -1,62 +1,67 @@
 # CLAUDE.md
 
-`isbetter`: a dependence-aware "is A really better than B?" toolkit. The user declares
-the dependence structure (`iid`, `paired`, `clustered`, `cv_overlap`, `timeseries`);
-that picks the valid test, returns a three-way verdict and shows the test is calibrated.
-Full design, method routing, formulas and phase tickets: `docs/BLUEPRINT.md`. Read the
-relevant phase there before starting a ticket.
+A hands-on A/B testing project. Goal: learn to compare A vs B properly, see the results
+ourselves, and present the findings and conclusions in a Power BI dashboard.
+The previous `isbetter` toolkit is archived under `archive/` (git tag `archive/isbetter-v1`).
 
-## Commands (mirror CI; `make check`, `make calibrate`, `make gallery` wrap them)
-```bash
-uv sync
-uv run ruff check .
-uv run mypy src/isbetter/core src/isbetter/methods src/isbetter/decision   # strict
-uv run pytest                     # fast tests (slow deselected by default)
-uv run pytest -m slow             # calibration, 10k replications; nightly in CI
-uv run isbetter run examples/toy_paired.yaml
-```
-Run ruff, mypy and fast pytest before every commit. CI runs Python 3.11 and 3.12.
+## How we work (most important)
+- Claude runs all analyses (the user's Windows laptop is low on resources). The user reviews
+  results and gives insights. We decide each next step together.
+- One small step at a time. Before running: say in plain English what the step does and why,
+  and ask the user for a prediction. After running: show the numbers and a chart, compare them
+  to the prediction, say what they mean, then stop and ask for the user's reading. Do not start
+  the next step until the user has responded.
+- Record what we found and what the user concluded in `notes/` (dated, short).
+- Never present a result as settled if its check has not been run.
+
+## Teaching style
+- Explain like a sharp, down-to-earth MIT lecturer: simple language, everyday examples, an
+  unconventional angle when it helps. Intuition first, then the exact definition in one sentence.
+- Define any statistics term on first use. Name where each analogy stops working.
+- Use 80/20, game theory, habit-building and similar ideas only where they genuinely fit.
+- Accuracy beats style: if a vivid explanation and a correct one conflict, the correct one wins.
 
 ## Layout
-- `core/` config, schema, plan, runner, result, dependence · `methods/` estimators ·
-  `decision/` verdict · `adapters/` input loaders · `report/` Markdown output ·
-  `simulate/` DGPs and the calibration harness
-- `tests/{unit,oracle,property,calibration}`; `validation/failure_gallery/`;
-  `case_studies/`
+- `data/` raw datasets (gitignored, never committed)
+- `analysis/` one script per step, numbered (`01_explore.py`, `02_two_proportion.py` ...)
+- `results/` CSV tables written by the analyses; these feed Power BI
+- `dashboard/` Power BI page and measure spec (`SPEC.md`, DAX) and data-model notes
+- `notes/` our findings and the user's conclusions
+- `archive/` the old toolkit, read-only reference; do not edit or import from it
 
-## Rules (non-negotiable)
-1. `core/`, `methods/`, `decision/` are pure: no file I/O, plotting or printing.
-2. Randomness goes through a passed-in `numpy.random.Generator`. Never
-   `np.random.seed` or global state. Record the seed in `Result`.
-3. Every hand-written estimator ships with an oracle test against a trusted reference
-   (SciPy, statsmodels, mlxtend, arch). Wrap hard methods rather than rewriting them.
-4. Memory: must run on 8 GB. Batch bootstraps (never build an n×B index matrix),
-   aggregate big tables in DuckDB/polars first.
-5. Each method returns a `rationale` string explaining why it was chosen; the report prints it.
-6. mypy strict on core/methods/decision; ruff line length 100.
+## Commands
+```bash
+uv sync
+uv run python analysis/<step>.py
+uv run pytest
+uv run ruff check .
+```
 
-## Workflow
-- Keep PRs small: one estimator + its oracle test + its docstring, or one ticket step.
-  Small diffs are easier to verify against the blueprint and a reference implementation,
-  which is how wrong formulas and invented APIs get caught. If a task spans several
-  tickets or touches several methods, split it into separate PRs and don't bundle them.
-- PR titles are a plain-English summary of the change, in the style of the commit log
-  (e.g. "Add Diebold-Mariano test with HLN correction and oracle tests"). Never use the
-  branch name, a session ID or a generic title like "Update files". The description
-  says what changed, why, and how it was verified (which tests were run).
-- A statistics change is not done until its oracle test passes. If it affects Type I
-  error or coverage, run `-m slow` too.
-- Don't weaken a test tolerance to make it pass; find the cause.
-- Don't commit generated outputs (`data/`, `case_studies/*/out/`).
+## Rules
+1. Randomness goes through a seeded `numpy.random.Generator`; write the seed next to the result.
+   Never use `np.random.seed` or global state.
+2. Every hand-written test or interval is checked against a trusted library (SciPy,
+   statsmodels). Each step prints the side-by-side comparison so the user sees it; turn it into
+   an automatic test later as a safety net. Prefer calling the library over rewriting it.
+3. Trust check before conclusions: for each method, run an A/A simulation (two identical
+   groups) and report how often it wrongly finds a difference.
+4. Don't weaken a test tolerance to make it pass; find the cause.
+5. Keep memory light. Aggregate big tables first; Power BI only sees summary CSVs.
+
+## Dashboard contract
+- Each analysis writes tidy CSVs to `results/` (one row per comparison or check, stable column
+  names). Do not change a column name without updating `dashboard/SPEC.md`.
+- Power BI Desktop (Windows) is the dashboard. Claude writes the CSVs and the spec; the user
+  builds the `.pbix` and writes the conclusions.
 
 ## Scope
-Personal, local, unpublished tool. Do not add PyPI publishing, a docs site, Streamlit or other hosting;
-`pyproject.toml` carries `Private :: Do Not Upload` on purpose. Phase 6 is the local-polish list in
-`docs/BLUEPRINT.md` section 7.
+Personal and local. No PyPI publishing, hosting, docs site or web apps.
+
+## Workflow
+- Small commits, one step each. Commit messages are a plain-English summary of the change.
+  Open a PR only when the user asks.
+- Don't commit `data/` or large generated outputs.
 
 ## Gotchas
-- Case studies 01 to 05 (`01_fraud_classifiers`, `02_ab_hillstrom_criteo`, `03_forecasting_m5`,
-  `04_trading_edge`, `05_llm_eval`) use synthetic stand-ins, not real data; their REPORTs say so. Each `run.py`
-  has a path for real data that is tested only on a tiny file.
-- Optional extras (`ab`, `ml`, `forecast`, ...) are not in the base install; dev tests
-  need the `dev` dependency group.
+- Name the dataset, its source, licence and known caveats in `notes/` before using it
+  (for example, whether rows are users or impressions).

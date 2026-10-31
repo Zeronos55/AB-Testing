@@ -55,3 +55,31 @@
 - Women's lift (0.31 points): also not luck. Reason given: unequal wealth by gender in 2008.
 - Note: neither reason can be checked in the data (no income or gender column), and recipients
   in all three groups are alike, so recipient wealth cannot explain a gap between groups.
+
+## Claude's responses to the user's answers (to re-check and revise later)
+**To the first reading (1.25% and "50% larger")**
+- 1.25% is the share of the men's-email group who bought, not an increase. The increase over no
+  email is 1.25 - 0.57 = 0.68 points. Men's vs women's: the rate is 42% higher (1.25 vs 0.88);
+  the lift over no email is 0.68 vs 0.31 points, about 2.2 times as big.
+- The groups are people who got an email featuring men's or women's merchandise, not male or
+  female customers. `mens` / `womens` are past purchases. Random assignment makes the groups
+  alike on average, so the gap comes from the email, not from who received it.
+
+**To the audience hypothesis (store leans male)**
+- A good hypothesis, but the customers split about evenly (45% men's-only buyers, 45% women's-only,
+  10% both), and there is no gender or income column. Testable later with `mens` / `womens`.
+
+**To the priority order (purchases, then spend, then visits)**
+- Sound. The price-mix idea was checked: spend among buyers is about equal across groups, so extra
+  spend per person comes from more buyers, not bigger baskets. No product column, so purchases
+  show which email worked, not which products are in demand.
+
+**To the step 3 predictions**
+- "Men's lift is real": likely right. The reason (white-collar customers, impulse buying) is a
+  story, not data. Separate "is it real?" (statistics) from "why?" (hypothesis, untested).
+- "Women's lift is also not luck, because of unequal wealth by gender": the conclusion may be right,
+  but the reason cannot explain a gap between groups. All three groups have the same mix of
+  customers, so recipient wealth would affect every group equally, including no email. The gap
+  must come from the email itself. Open follow-up: do men's-item buyers respond differently from
+  women's-item buyers?
+- Spend is zero for over 98% of customers, so it needs a different test than buy-or-not.

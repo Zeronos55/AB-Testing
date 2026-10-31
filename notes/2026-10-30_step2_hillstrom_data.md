@@ -25,4 +25,17 @@
 - Purchases: men's +0.68 points (2.2x), women's +0.31 points (1.5x). Visits: +7.7 and +4.5 points.
 
 ## User's reading
-(to fill in after discussion)
+1. Most striking: the 1.25% purchase result in the men's-email group, which looked about 50% larger
+   than the women's.
+   - Clarified: 1.25% is the share of that group who bought, not an increase. Men's vs women's
+     rate is 42% larger (1.25 vs 0.88); the lift over no email is 0.68 vs 0.31 points (2.2x as big).
+   - Clarified: the groups are who got an email featuring men's or women's merchandise, not male
+     or female customers. Columns `mens` / `womens` record what each customer bought before.
+2. Hypothesis: the store's audience leans male, with some unisex/female lines. (No product info
+   found.) Testable later using the `mens` / `womens` past-purchase flags.
+3. Priority: purchases first (shows which products are in demand), spend per person second
+   (price mix: expensive vs cheap categories), visits third (reach and attention).
+   - Check: spend among buyers is about the same in all groups ($113.5 men's, $114.0 none,
+     $121.9 women's), so extra spend per person comes from more buyers, not bigger baskets.
+   - Limit: the data has no product column, so purchases show which email worked, not which
+     products are in demand.

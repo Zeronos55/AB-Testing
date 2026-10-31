@@ -39,3 +39,19 @@
      $121.9 women's), so extra spend per person comes from more buyers, not bigger baskets.
    - Limit: the data has no product column, so purchases show which email worked, not which
      products are in demand.
+
+## Dataset tour (2026-10-31)
+- Every column profiled in `analysis/01b_data_guide.py`; balance check in `results/01b_balance_check.csv`.
+- The three groups look alike on everything known before the email (past spend, recency,
+  past men's/women's purchases, region, channel, new vs old customer), so the random split worked.
+- Customers: 45% bought only men's items, 45% only women's, 10% both (nobody bought neither).
+  Flags are past purchases, not gender. Half are new customers; spend is mostly zero (75th
+  percentile $0, max $499), so spend needs a different test than a simple rate.
+- No gender or income column exists.
+
+## Predictions for step 3 (before the test is run)
+- Men's lift (0.68 points): confident it is real. Reason given: 2008 white-collar customers,
+  emails prompting impulse buys.
+- Women's lift (0.31 points): also not luck. Reason given: unequal wealth by gender in 2008.
+- Note: neither reason can be checked in the data (no income or gender column), and recipients
+  in all three groups are alike, so recipient wealth cannot explain a gap between groups.

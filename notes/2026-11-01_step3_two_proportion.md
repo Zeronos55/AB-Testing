@@ -27,3 +27,17 @@ to 8+ digits. Results: `results/02_two_proportion.csv`, chart `results/02_lift_c
 
 ## User's reading
 (to fill in after discussion)
+
+## Why this test (written after the fact, at the user's request)
+Our situation: one row per customer, randomly given one of three emails, yes/no outcome,
+large groups (about 21,300 each; smallest count is 122 buyers).
+- Chosen: pooled two-proportion z-test for the p-value, Wald interval for the size. Reason: the
+  outcome is yes/no, the groups are different people, and counts are large, so the textbook test
+  applies and is easy to verify. It is mathematically the same as a chi-square test on a 2x2 table
+  (z squared equals chi-square), which is why SciPy matched.
+- Considered, not used: Fisher's exact (for small counts, not needed); logistic regression (for
+  adjusting for other columns, later); Newcombe or Wilson interval (arguably a better default
+  interval, fine to switch); permutation test and Bayesian beta-binomial (good cross-checks);
+  Welch t-test (for numbers like spend, not yes/no); paired or cluster methods (no pairing or
+  repeated rows here).
+- Gap in what I did: no overall three-group test first, and no direct men's vs women's test.

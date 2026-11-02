@@ -8,7 +8,11 @@ The previous `isbetter` toolkit is archived under `archive/` (git tag `archive/i
 - Claude runs all analyses (the user's Windows laptop is low on resources). The user reviews
   results and gives insights. We decide each next step together.
 - One small step at a time. Before running: say in plain English what the step does and why,
-  and ask the user for a prediction. After running: show the numbers and a chart, compare them
+  and ask the user for a prediction.
+- Before choosing any method, teach the choice: what we are comparing (outcome type, how the
+  groups relate, sample size), the options considered and why each fits or not, the pick and why,
+  its assumptions and how we will check them. Point to `notes/test_chooser.md` and let the user
+  weigh in before we run anything. After running: show the numbers and a chart, compare them
   to the prediction, say what they mean, then stop and ask for the user's reading. Do not start
   the next step until the user has responded.
 - Record what we found and what the user concluded in `notes/` (dated, short).

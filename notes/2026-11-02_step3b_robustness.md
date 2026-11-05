@@ -30,5 +30,17 @@ Newcombe interval written by hand from Wilson intervals; matches statsmodels to 
 - Process note: a first draft printed "any flip: True" because `~True` is -2 in Python. Caught before
   reporting; fixed by converting to bool.
 
-## User's reading
-(to fill in after discussion)
+## User's reading (2026-11-03)
+1. Why predict a flip: "different tests serve different purposes, so some wouldn't tally."
+   - Claude's response: half right. Tests that answer *different* questions (e.g. t-test on means vs
+     Mann-Whitney, or a rate test vs a spend test) can disagree. Tests answering the *same*
+     question (here: are the buying rates different?) should agree on a clear effect, and
+     disagreement among them is a warning. They can still split near the edge (p around 0.05) or
+     with small samples. Ask first: do these tests answer the same question?
+2. Shuffles needed for a smaller p: "1x10^n shuffles gives about 1x10^-(n+1)".
+   - Claude's response: right pattern, off by one. 10,000 = 10^4 shuffles gives a floor of
+     about 1/10,001 = 10^-4, so B shuffles resolve p down to about 1/B. For p = 1.5e-13 you need
+     about 10^13 shuffles (centuries at 1,000 per second), which is why Fisher's exact test counts
+     all shuffles with a formula instead.
+3. Next step chosen: test men's email vs women's email directly. Purchases only.
+   - Prediction: the p-value will be about the same size as women's vs no email (0.00016).

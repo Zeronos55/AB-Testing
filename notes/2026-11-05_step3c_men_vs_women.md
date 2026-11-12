@@ -27,5 +27,19 @@ Overall test (3 groups x bought/not): chi-square 55.3, 2 degrees of freedom, p =
 - Not answered: why. The two emails differ in merchandise, and probably also in offer, wording and
   design; we cannot separate these.
 
-## User's reading
-(to fill in after discussion)
+## User's reading (2026-11-12)
+1. Question: how many non-males clicked into the men's merchandise email?
+   - Claude's response: the data cannot say. There is no gender column and no click column. `visit`
+     means visited the website within two weeks, not clicked the email. Closest proxy: customers
+     whose only past purchases were women's items (`womens`=1, `mens`=0), about 45% of customers.
+     Leaky, because gifts blur it. Segment slices add comparisons (more lottery tickets), so state the
+     hypothesis first: the men's email lifts purchases more among men's-history buyers than among
+     women's-only buyers. Candidate follow-up step, not yet run.
+2. Confidence in the men's-vs-women's result: the wide range (0.17 to 0.57 points) does not change it.
+   - Claude's response: consistent. The range excludes zero, so confidence that the lift is real is
+     unaffected; the range only limits how precisely we know its size.
+3. Ready for step 4 (the trust check).
+4. Question: when do we visualize the data?
+   - Claude's response: so far charts were reading aids for results (group rates, interval plots). We
+     have not yet drawn the data itself (distributions of past spend and recency, spend with its
+     many zeros, balance across groups). Fair gap; options offered for where to place a visual tour.

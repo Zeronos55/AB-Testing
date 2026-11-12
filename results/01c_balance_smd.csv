@@ -1,0 +1,23 @@
+before_email_fact,group,standardized_difference
+recency,Mens E-Mail,0.006831532454259954
+recency,Womens E-Mail,0.005180013205688683
+history,Mens E-Mail,0.00761286832154239
+history,Womens E-Mail,0.006510722458553667
+mens,Mens E-Mail,-0.0045823256374879625
+mens,Womens E-Mail,-0.008630731202832915
+womens,Mens E-Mail,0.007588929691887142
+womens,Womens E-Mail,0.004946313992582152
+newbie,Mens E-Mail,-0.0008918953696535328
+newbie,Womens E-Mail,0.0025567009140795606
+urban,Mens E-Mail,0.0019722315768513645
+urban,Womens E-Mail,-0.0017628666291550237
+suburban,Mens E-Mail,-0.01174335672606268
+suburban,Womens E-Mail,-0.0010891197386245202
+rural,Mens E-Mail,0.01365900039927897
+rural,Womens E-Mail,0.00395850560137286
+web,Mens E-Mail,0.011013588354428299
+web,Womens E-Mail,-0.005147863897421752
+phone,Mens E-Mail,-0.008275992307117473
+phone,Womens E-Mail,0.008622833281250204
+multichannel,Mens E-Mail,-0.004181536419632754
+multichannel,Womens E-Mail,-0.00528289712504171

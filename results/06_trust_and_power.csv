@@ -1,0 +1,3 @@
+email,contrast,n_email_A,n_control_A,n_email_B,n_control_B,false_alarm_rate_no_gap,nominal,mde_points_80pct_power,power_simulated_at_mde,reps,seed
+Mens E-Mail,Men's-only vs Women's-only,9558,9638,9568,9519,0.048,0.05,0.5594824108324029,0.8056,10000,20261113
+Womens E-Mail,Women's-only vs Men's-only,9647,9519,9622,9638,0.0486,0.05,0.5097271591795506,0.8013,10000,20261113

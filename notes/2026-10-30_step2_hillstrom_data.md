@@ -1,0 +1,85 @@
+# Step 2: the Hillstrom email data (2026-10-30)
+
+## Dataset
+- Source: Kevin Hillstrom's MineThatData E-Mail Analytics and Data Mining Challenge, March 2008
+  (https://blog.minethatdata.com/2008/03/minethatdata-e-mail-analytics-and-data.html).
+- Got the file by manual download and upload (the site's HTTPS certificate is broken, so the
+  cloud session could not fetch it). Kept in gitignored `data/hillstrom.csv`.
+- Licence: no explicit licence found. Public challenge file mirrored by several libraries.
+  Do not redistribute; keep it out of git.
+- 64,000 customers who bought within the previous 12 months, randomly split in three:
+  no email (21,306), men's email (21,307), women's email (21,387). Matches the published sizes.
+- One row = one customer. Outcomes: `visit` (visited site), `conversion` (bought), `spend`
+  (dollars), measured over two weeks after the email.
+- Caveat: promotional emails to existing customers, not cart reminders. No missing values.
+
+## Raw rates (no tests yet)
+| Group | Visited | Bought | Spend per person |
+|---|---|---|---|
+| No email | 10.62% | 0.57% | $0.65 |
+| Men's email | 18.28% | 1.25% | $1.42 |
+| Women's email | 15.14% | 0.88% | $1.08 |
+
+## Prediction vs data
+- User predicted a "noticeable" lift (1 to 5 points) in purchases.
+- Purchases: men's +0.68 points (2.2x), women's +0.31 points (1.5x). Visits: +7.7 and +4.5 points.
+
+## User's reading
+1. Most striking: the 1.25% purchase result in the men's-email group, which looked about 50% larger
+   than the women's.
+   - Clarified: 1.25% is the share of that group who bought, not an increase. Men's vs women's
+     rate is 42% larger (1.25 vs 0.88); the lift over no email is 0.68 vs 0.31 points (2.2x as big).
+   - Clarified: the groups are who got an email featuring men's or women's merchandise, not male
+     or female customers. Columns `mens` / `womens` record what each customer bought before.
+2. Hypothesis: the store's audience leans male, with some unisex/female lines. (No product info
+   found.) Testable later using the `mens` / `womens` past-purchase flags.
+3. Priority: purchases first (shows which products are in demand), spend per person second
+   (price mix: expensive vs cheap categories), visits third (reach and attention).
+   - Check: spend among buyers is about the same in all groups ($113.5 men's, $114.0 none,
+     $121.9 women's), so extra spend per person comes from more buyers, not bigger baskets.
+   - Limit: the data has no product column, so purchases show which email worked, not which
+     products are in demand.
+
+## Dataset tour (2026-10-31)
+- Every column profiled in `analysis/01b_data_guide.py`; balance check in `results/01b_balance_check.csv`.
+- The three groups look alike on everything known before the email (past spend, recency,
+  past men's/women's purchases, region, channel, new vs old customer), so the random split worked.
+- Customers: 45% bought only men's items, 45% only women's, 10% both (nobody bought neither).
+  Flags are past purchases, not gender. Half are new customers; spend is mostly zero (75th
+  percentile $0, max $499), so spend needs a different test than a simple rate.
+- No gender or income column exists.
+
+## Predictions for step 3 (before the test is run)
+- Men's lift (0.68 points): confident it is real. Reason given: 2008 white-collar customers,
+  emails prompting impulse buys.
+- Women's lift (0.31 points): also not luck. Reason given: unequal wealth by gender in 2008.
+- Note: neither reason can be checked in the data (no income or gender column), and recipients
+  in all three groups are alike, so recipient wealth cannot explain a gap between groups.
+
+## Claude's responses to the user's answers (to re-check and revise later)
+**To the first reading (1.25% and "50% larger")**
+- 1.25% is the share of the men's-email group who bought, not an increase. The increase over no
+  email is 1.25 - 0.57 = 0.68 points. Men's vs women's: the rate is 42% higher (1.25 vs 0.88);
+  the lift over no email is 0.68 vs 0.31 points, about 2.2 times as big.
+- The groups are people who got an email featuring men's or women's merchandise, not male or
+  female customers. `mens` / `womens` are past purchases. Random assignment makes the groups
+  alike on average, so the gap comes from the email, not from who received it.
+
+**To the audience hypothesis (store leans male)**
+- A good hypothesis, but the customers split about evenly (45% men's-only buyers, 45% women's-only,
+  10% both), and there is no gender or income column. Testable later with `mens` / `womens`.
+
+**To the priority order (purchases, then spend, then visits)**
+- Sound. The price-mix idea was checked: spend among buyers is about equal across groups, so extra
+  spend per person comes from more buyers, not bigger baskets. No product column, so purchases
+  show which email worked, not which products are in demand.
+
+**To the step 3 predictions**
+- "Men's lift is real": likely right. The reason (white-collar customers, impulse buying) is a
+  story, not data. Separate "is it real?" (statistics) from "why?" (hypothesis, untested).
+- "Women's lift is also not luck, because of unequal wealth by gender": the conclusion may be right,
+  but the reason cannot explain a gap between groups. All three groups have the same mix of
+  customers, so recipient wealth would affect every group equally, including no email. The gap
+  must come from the email itself. Open follow-up: do men's-item buyers respond differently from
+  women's-item buyers?
+- Spend is zero for over 98% of customers, so it needs a different test than buy-or-not.

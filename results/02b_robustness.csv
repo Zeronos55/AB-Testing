@@ -1,0 +1,13 @@
+group,method,lift_points,ci_low_points,ci_high_points,p_value,significant_at_5pct,note,seed
+Mens E-Mail,two-proportion z (step 2),0.6805006519615695,0.5000171380452312,0.8609841658779076,1.5232235005955427e-13,True,Wald interval,
+Mens E-Mail,Newcombe interval,0.6805006519615695,0.5014344671481533,0.8640723396917827,,,interval only; same z-test p-value,
+Mens E-Mail,Fisher exact,0.6805006519615695,,,1.167425327483139e-13,True,odds ratio 2.204,
+Mens E-Mail,"permutation (10,000 shuffles)",0.6805006519615695,,,9.999000099990002e-05,True,smallest possible p is 1.0e-04,20261102.0
+Mens E-Mail,logistic regression (Wald),0.6805006519615695,,,5.973008098850381e-13,True,odds ratio 2.204,
+Mens E-Mail,logistic regression (likelihood ratio),0.6805006519615695,,,7.755243650224008e-14,True,,
+Womens E-Mail,two-proportion z (step 2),0.3111057511085258,0.14986778214022342,0.4723437200768281,0.00015710512910668448,True,Wald interval,
+Womens E-Mail,Newcombe interval,0.3111057511085258,0.15016571318770086,0.474547131367293,,,interval only; same z-test p-value,
+Womens E-Mail,Fisher exact,0.3111057511085258,,,0.00016499877634158652,True,odds ratio 1.548,
+Womens E-Mail,"permutation (10,000 shuffles)",0.3111057511085258,,,0.00029997000299970003,True,smallest possible p is 1.0e-04,20261102.0
+Womens E-Mail,logistic regression (Wald),0.3111057511085258,,,0.00017664279396018877,True,odds ratio 1.548,
+Womens E-Mail,logistic regression (likelihood ratio),0.3111057511085258,,,0.0001478959410477082,True,,

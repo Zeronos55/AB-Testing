@@ -1,0 +1,37 @@
+scenario,source,n_per_group,true_rate,expected_buyers_per_group,method,measures,nominal,observed,band_low,band_high,reading,reps,seed,share_nobody_bought
+"n=250 per group, rate 0.57%",simulated,250,0.0057,1.425,z-test,false-alarm rate,0.05,0.0292,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0587
+"n=250 per group, rate 0.57%",simulated,250,0.0057,1.425,Fisher exact,false-alarm rate,0.05,0.0014,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0587
+"n=250 per group, rate 0.57%",simulated,250,0.0057,1.425,Wald interval,interval coverage,0.95,0.9708,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0587
+"n=250 per group, rate 0.57%",simulated,250,0.0057,1.425,Newcombe interval,interval coverage,0.95,0.9926,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0587
+"n=500 per group, rate 0.57%",simulated,500,0.0057,2.85,z-test,false-alarm rate,0.05,0.0449,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0025
+"n=500 per group, rate 0.57%",simulated,500,0.0057,2.85,Fisher exact,false-alarm rate,0.05,0.0102,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0025
+"n=500 per group, rate 0.57%",simulated,500,0.0057,2.85,Wald interval,interval coverage,0.95,0.9551,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0025
+"n=500 per group, rate 0.57%",simulated,500,0.0057,2.85,Newcombe interval,interval coverage,0.95,0.9718,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0025
+"n=1,000 per group, rate 0.57%",simulated,1000,0.0057,5.7,z-test,false-alarm rate,0.05,0.0462,0.045728279035330145,0.05427172096466986,calibrated,10000,20261112,0.0
+"n=1,000 per group, rate 0.57%",simulated,1000,0.0057,5.7,Fisher exact,false-alarm rate,0.05,0.0238,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=1,000 per group, rate 0.57%",simulated,1000,0.0057,5.7,Wald interval,interval coverage,0.95,0.9538,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=1,000 per group, rate 0.57%",simulated,1000,0.0057,5.7,Newcombe interval,interval coverage,0.95,0.9582,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0
+"n=2,000 per group, rate 0.57%",simulated,2000,0.0057,11.4,z-test,false-alarm rate,0.05,0.0503,0.045728279035330145,0.05427172096466986,calibrated,10000,20261112,0.0
+"n=2,000 per group, rate 0.57%",simulated,2000,0.0057,11.4,Fisher exact,false-alarm rate,0.05,0.029,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=2,000 per group, rate 0.57%",simulated,2000,0.0057,11.4,Wald interval,interval coverage,0.95,0.9497,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=2,000 per group, rate 0.57%",simulated,2000,0.0057,11.4,Newcombe interval,interval coverage,0.95,0.9592,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0
+"n=5,000 per group, rate 0.57%",simulated,5000,0.0057,28.5,z-test,false-alarm rate,0.05,0.045,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=5,000 per group, rate 0.57%",simulated,5000,0.0057,28.5,Fisher exact,false-alarm rate,0.05,0.0341,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=5,000 per group, rate 0.57%",simulated,5000,0.0057,28.5,Wald interval,interval coverage,0.95,0.955,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0
+"n=5,000 per group, rate 0.57%",simulated,5000,0.0057,28.5,Newcombe interval,interval coverage,0.95,0.9554,0.9457282790353301,0.9542717209646698,over-covers (valid),10000,20261112,0.0
+"n=10,000 per group, rate 0.57%",simulated,10000,0.0057,57.0,z-test,false-alarm rate,0.05,0.0533,0.045728279035330145,0.05427172096466986,calibrated,10000,20261112,0.0
+"n=10,000 per group, rate 0.57%",simulated,10000,0.0057,57.0,Fisher exact,false-alarm rate,0.05,0.0429,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=10,000 per group, rate 0.57%",simulated,10000,0.0057,57.0,Wald interval,interval coverage,0.95,0.9467,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=10,000 per group, rate 0.57%",simulated,10000,0.0057,57.0,Newcombe interval,interval coverage,0.95,0.9483,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=21,300 per group, rate 0.57%",simulated,21300,0.0057,121.41000000000001,z-test,false-alarm rate,0.05,0.0499,0.045728279035330145,0.05427172096466986,calibrated,10000,20261112,0.0
+"n=21,300 per group, rate 0.57%",simulated,21300,0.0057,121.41000000000001,Fisher exact,false-alarm rate,0.05,0.0433,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=21,300 per group, rate 0.57%",simulated,21300,0.0057,121.41000000000001,Wald interval,interval coverage,0.95,0.9501,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=21,300 per group, rate 0.57%",simulated,21300,0.0057,121.41000000000001,Newcombe interval,interval coverage,0.95,0.9505,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=500 per group, rate 10.00%",simulated,500,0.1,50.0,z-test,false-alarm rate,0.05,0.0511,0.045728279035330145,0.05427172096466986,calibrated,10000,20261112,0.0
+"n=500 per group, rate 10.00%",simulated,500,0.1,50.0,Fisher exact,false-alarm rate,0.05,0.0407,0.045728279035330145,0.05427172096466986,conservative (valid),10000,20261112,0.0
+"n=500 per group, rate 10.00%",simulated,500,0.1,50.0,Wald interval,interval coverage,0.95,0.948,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"n=500 per group, rate 10.00%",simulated,500,0.1,50.0,Newcombe interval,interval coverage,0.95,0.9491,0.9457282790353301,0.9542717209646698,calibrated,10000,20261112,0.0
+"real no-email group split in halves (10,653 each)",real data (reused people),10653,0.005726086548390125,61.0,z-test,false-alarm rate,0.05,0.0557,0.045728279035330145,0.05427172096466986,indicative only (splits reuse the same people),10000,20261112,0.0
+"real no-email group split in halves (10,653 each)",real data (reused people),10653,0.005726086548390125,61.0,Fisher exact,false-alarm rate,0.05,0.0368,0.045728279035330145,0.05427172096466986,indicative only (splits reuse the same people),10000,20261112,0.0
+"real no-email group split in halves (10,653 each)",real data (reused people),10653,0.005726086548390125,61.0,Wald interval,interval coverage,0.95,0.9443,0.9457282790353301,0.9542717209646698,indicative only (splits reuse the same people),10000,20261112,0.0
+"real no-email group split in halves (10,653 each)",real data (reused people),10653,0.005726086548390125,61.0,Newcombe interval,interval coverage,0.95,0.9443,0.9457282790353301,0.9542717209646698,indicative only (splits reuse the same people),10000,20261112,0.0

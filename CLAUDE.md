@@ -59,7 +59,9 @@ uv run ruff check .
   builds the `.pbix` and writes the conclusions.
 
 ## Scope
-Personal and local. No PyPI publishing, hosting, docs site or web apps.
+Personal learning project, not built for public use or scale. Everything runs locally on the
+user's own machine, and local web apps (for example a Streamlit app on localhost) are fine.
+No PyPI publishing, no deploying or hosting for the public internet, no docs site.
 
 ## Workflow
 - Small commits, one step each. Commit messages are a plain-English summary of the change.
